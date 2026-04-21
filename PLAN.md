@@ -29,11 +29,62 @@
 - `/src/db` (configuración postgres)
 
 ## Modelos de Base de Datos Sugeridos
-- **Users:** id, email, role (user/admin), created_at.
-- **Products:** id, name, description, price, stock, condition (A/B/C), image_urls (array), created_at.
-- **Orders:** id, user_id, total_amount, status (pending/paid/shipped), stripe_session_id.
-- **Order_Items:** id, order_id, product_id, price, quantity.
-- **Warranty_Reports:** id, order_item_id, user_id, description, status (pending/review/resolved), repair_notes, evidence_urls.
+- `users`: id, email, role (user/admin), created_at.
+- `products`: id, name, description, price, stock, condition (A/B/C), image_urls (array), created_at.
+- `orders`: id, user_id, total_amount, status (pending/paid/shipped), stripe_session_id.
+- `order_items`: id, order_id, product_id, price, quantity.
+- `warranty_reports`: id, order_item_id, user_id, description, status (pending/review/resolved), repair_notes, evidence_urls.
+
+---
+
+## 🔥 ESPECIFICACIÓN TÉCNICA DE ENDPOINTS (API REST)
+
+### 1. Dominio: Productos (`/api/products`)
+- **`GET /api/products`**
+  - *Descripción:* Lista los productos disponibles.
+  - *Query Params:* `?condition=A` (Opcional).
+  - *Respuesta (200 OK):* `[{ id, name, price, stock, condition, image_urls }]`
+- **`GET /api/products/:id`**
+  - *Respuesta (200 OK):* Objeto completo del producto.
+- **`POST /api/products` (Protegido: Admin)**
+  - *Body Requerido:* `{ name, description, price, stock, condition, image_urls }`
+  - *Respuesta (201 Created):* Producto creado.
+- **`PUT /api/products/:id` (Protegido: Admin)**
+  - *Body:* Campos a actualizar (ej. `{ stock: 10 }`)
+- **`DELETE /api/products/:id` (Protegido: Admin)**
+
+### 2. Dominio: Pagos y Órdenes (`/api/orders` & `/api/checkout`)
+- **`POST /api/checkout` (Protegido: User)**
+  - *Body Requerido:* `{ items: [{ productId: string, quantity: number }] }`
+  - *Descripción:* Genera sesión con Stripe validando precios en DB.
+  - *Respuesta (200 OK):* `{ checkoutUrl: "https://checkout.stripe.com/..." }`
+- **`POST /api/webhooks/stripe` (Público)**
+  - *Body:* Stripe Event Object (`checkout.session.completed`).
+  - *Acción:* Crea `Orden`, `Order Items` y reduce `stock` atómicamente.
+- **`GET /api/orders/mine` (Protegido: User)**
+  - *Descripción:* Historial de compras del usuario autenticado.
+  - *Respuesta (200 OK):* `[{ id, total_amount, status, created_at, items: [...] }]`
+- **`GET /api/orders` (Protegido: Admin)**
+  - *Descripción:* Ver todas las órdenes de la plataforma.
+
+### 3. Dominio: Subidas / Assets (`/api/uploads`)
+- **`POST /api/uploads` (Protegido: User/Admin)**
+  - *Headers:* `Content-Type: multipart/form-data`
+  - *Body:* Archivo binario (campo `file`).
+  - *Respuesta (200 OK):* `{ url: "https://s3.amazonaws.com/bucket/file.jpg" }`
+
+### 4. Dominio: Garantías (`/api/warranties`)
+- **`POST /api/warranties` (Protegido: User)**
+  - *Body Requerido:* `{ orderItemId: string, description: string, evidenceUrls: string[] }`
+  - *Acción:* Valida que hayan pasado menos de 90 días desde la creación del `Order`.
+  - *Respuesta (201 Created):* Ticket de garantía creado.
+- **`GET /api/warranties` (Protegido: Admin)**
+  - *Descripción:* Dashboard de soporte.
+  - *Respuesta (200 OK):* Lista de tickets con status `pending`, `review`, `resolved`.
+- **`PUT /api/warranties/:id/status` (Protegido: Admin)**
+  - *Body Requerido:* `{ status: "resolved", repairNotes: "Cambio de pantalla" }`
+
+---
 
 ## Backlog por Sprints (Selección Principal)
 
