@@ -149,3 +149,31 @@ Se inicializÃ³ el proyecto frontend con React y Vite, integrando el SDK de Clerk
 - Explicar si se instalÃ³ alguna librerÃ­a nueva.
 - Explicar si se cambiÃ³ alguna variable de entorno.
 -->
+
+## ? [Issue 71] Implementar Carrito en local (Frontend)
+**Sprint:** 2 | **Estado:** Completado 
+
+### ?? Archivos Creados/Modificados
+- *[frontend/src/store/cart.store.ts]*: Se actualizaron los métodos de añadir y modificar cantidad validando que el user nunca pueda sobrepasar el stock provisto por el backend. También se agregó estado local para manejar si el Drawer está abierto o no.
+- *[frontend/src/components/CartIcon.tsx]*: Se creó este componente para el navar que mapea el contador y aplica un keyframe bounce cada vez que salta (+1).
+- *[frontend/src/components/CartDrawer.tsx]*: Componente principal estilo sidebar/offcanvas. Itera sobre los items procesando el precio Subtotal y renderizando cada control para cambiar stock y remover.
+- *[frontend/src/components/Header.tsx]*: Añadido el componente <CartIcon /> y el componente <CartDrawer /> inyectado para que viva de manera global disponible en cualquier vista.
+- *[frontend/src/index.css]*: Se añadieron los estilos responsivos del Drawer, Backdrop y animaciones usando CSS puro para que respete el guideline "brutalist premium".
+
+### ?? Contexto Importante
+- Todo reside en LocalStorage gracias al middleware persist() instanciado previamente de Zustand evitando pérdida temporal de sesión (refress no borra los items).
+- No hubo necesidad de librerías extras (framer o gsap).
+
+## ? [Issue 71] Implementación UI Carrito y Mocks
+**Sprint:** 2 | **Estado:** Completado 
+
+### ?? Archivos Creados/Modificados
+- *[frontend/src/components/CartDrawer.tsx]*: Componente de UI tipo offcanvas renderizado con React Portals para evadir el contexto del header. Cálculos de subtotales en tiempo real y validación visual contra stock máximo.
+- *[frontend/src/components/CartIcon.tsx]*: Botón de navbar animado con un badge de notificaciones dinámico asociado al store de Zustand.
+- *[frontend/src/index.css]*: Estilos del drawer, el botón del carrito y animaciones (slideInRight, ubbleBounce). Reparación de conflictos de z-index con el header.
+- *[frontend/src/data/mockProducts.ts]*: Datos Mocks para pruebas visuales en base a la interfaz \Product\.
+- *[frontend/src/services/products.service.ts]*: Servicio actualizado temporalmente para retornar la lista mockeada con retraso de red simulado (500ms).
+
+### ?? Contexto Importante
+- Se utilizó la técnica de React Portals para inyectar el Drawer al nivel de \document.body\ garantizando el control absoluto del layout y el fondo oscuro sin heredar z-indexes problemáticos del \#root\ o NavBar.
+- Se mantienen datos mockeados en \products.service.ts\ temporalmente a fines de depuración visual de la interfaz.

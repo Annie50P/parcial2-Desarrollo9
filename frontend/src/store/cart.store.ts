@@ -7,22 +7,28 @@ export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
+      isDrawerOpen: false,
+      
+      toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
       
       addItem: (product: Product, quantity: number = 1) => set((state) => {
         const existingItem = state.items.find(item => item._id === product._id);
         
         if (existingItem) {
           return {
-            items: state.items.map(item =>
-              item._id === product._id
-                ? { ...item, quantity: item.quantity + quantity }
-                : item
-            )
+            items: state.items.map(item => {
+              if (item._id === product._id) {
+                const newQuantity = Math.min(item.quantity + quantity, product.stock);
+                return { ...item, quantity: newQuantity };
+              }
+              return item;
+            })
           };
         }
         
+        const initialQuantity = Math.min(quantity, product.stock);
         return {
-          items: [...state.items, { ...product, quantity }]
+          items: [...state.items, { ...product, quantity: initialQuantity }]
         };
       }),
       
@@ -31,11 +37,13 @@ export const useCartStore = create<CartState>()(
       })),
       
       updateQuantity: (productId: string, quantity: number) => set((state) => ({
-        items: state.items.map(item =>
-          item._id === productId
-            ? { ...item, quantity: Math.max(1, quantity) }
-            : item
-        )
+        items: state.items.map(item => {
+          if (item._id === productId) {
+            const newQuantity = Math.min(Math.max(1, quantity), item.stock);
+            return { ...item, quantity: newQuantity };
+          }
+          return item;
+        })
       })),
       
       clearCart: () => set({ items: [] })

@@ -1,21 +1,14 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
-import { useCartStore } from "../store/cart.store";
+import { CartIcon } from "./CartIcon";
+import { CartDrawer } from "./CartDrawer";
 
 export default function Header() {
-  const items = useCartStore((state) => state.items);
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-
   return (
     <header className="nav-header">
       <a href="/" className="nav-brand">SafeTech</a>
       
       <nav className="nav-actions">
-        <div className="cart-icon-wrapper">
-          Cart
-          <span className="cart-badge">
-            {totalItems}
-          </span>
-        </div>
+        <CartIcon />
 
         <SignedOut>
           <SignInButton mode="modal">
@@ -29,6 +22,8 @@ export default function Header() {
           <UserButton afterSignOutUrl="/" />
         </SignedIn>
       </nav>
+
+      <CartDrawer />
     </header>
   );
 }
