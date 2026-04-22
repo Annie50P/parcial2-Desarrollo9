@@ -1,4 +1,4 @@
-import { Product } from '../types/product';
+import type { Product } from '../types/product';
 
 const API_URL = 'http://localhost:3000/api';
 
@@ -7,5 +7,6 @@ export const getProducts = async (): Promise<Product[]> => {
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
-  return response.json();
+  const result = await response.json();
+  return result.data || [];
 };
