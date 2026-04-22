@@ -198,6 +198,27 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 - **backend/.env**: Variables de entorno STRIPE y CLERK a�adidas.
 - **backend/src/middlewares/auth.middleware.ts**: Creado middleware para parsear JWT de Clerk y transferir auth.userId de forma segura.
 - **backend/src/models/OrderItem.ts**: Creado nuevo formato Mongoose temporal para cruzar Orders con Products de Mongo.
+
+---
+
+## ✅ [Issue 75] Garantías y Evidencias con Cloudflare R2
+**Sprint:** 2 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[backend/src/services/r2.service.ts]*: Cliente de S3 configurado para Cloudflare R2.
+- *[backend/src/models/WarrantyReport.ts]*: Modelo Mongoose para reportes de garantía con soporte para múltiples URLs de evidencia.
+- *[backend/src/controllers/upload.controller.ts]*: Controlador para procesar y subir archivos binarios a R2.
+- *[backend/src/controllers/warranty.controller.ts]*: CRUD para la gestión de tickets de garantía.
+- *[backend/src/routes/upload.routes.ts]* / *[backend/src/routes/warranty.routes.ts]*: Nuevos enrutadores para la API.
+- *[backend/src/index.ts]*: Registro de rutas `/api/uploads` y `/api/warranties`.
+- *[frontend/src/types/warranty.ts]*: Definición de interfaces para el cliente.
+- *[frontend/src/services/warranty.service.ts]*: Servicio para subida de archivos y creación de reportes.
+- *[frontend/src/components/EvidenceUploader.tsx]*: Componente UI para selección y subida automática de imágenes a R2.
+
+### 💡 Contexto Importante
+- Se utilizaron las librerías `@aws-sdk/client-s3` y `@aws-sdk/s3-request-presigner` en el backend.
+- Se requiere configuración de 5 variables de entorno `R2_*` en el `backend/.env`.
+- Cloudflare R2 fue seleccionado como alternativa a AWS S3 por compatibilidad de API y costos.
 - **backend/src/models/User.ts**: Creado clerk_id de enlace string mapping.
 - **backend/src/validators/checkout.validator.ts**: Creada validacion Zod {items: []} confirmando ObjectID y amounts validos > 1.
 - **backend/src/controllers/checkout.controller.ts**: Endpoint creado. Chequea y rechaza DB stocks vs payloads fake con error 400. Mapea precios propios, crea Orden pending con clerkId, y arranca Checkout create de Stripe.
