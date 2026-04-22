@@ -106,6 +106,37 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 
 ---
 
+## ✅ [Issue 79] Desarrollo de Landing Page E-commerce
+**Sprint:** 1 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[frontend/src/App.tsx]*: Se agregó la nueva ruta `/landing`.
+- *[frontend/src/index.css]*: Nuevas clases y estilos para Hero, Beneficios y grid.
+- *[frontend/src/components/HeroSection.tsx]*: Componente de Hero con título y call-to-action reutilizando clases globales actuales (tipografías, stagger, botones).
+- *[frontend/src/components/BenefitsGrid.tsx]*: Componente que muestra beneficios clave: garantía de 90 días, productos certificados, envíos y soporte.
+- *[frontend/src/components/FeaturedProducts.tsx]*: Reutiliza el listado base y `useProducts` de TanStack para mostrar solo 6 productos destacados optimizando la visualización en la landing.
+- *[frontend/src/pages/Landing.tsx]*: Vista final que ensambla los componentes del Hero, Beneficios y Destacados.
+
+### 💡 Contexto Importante
+- Implementación diseñada para reciclar toda la estética visual actual del proyecto sin afectar el layout en la ruta default (`/` o `Home.tsx`).
+- No fue necesario instalar librerías extras ni variables de entorno adicionales.
+
+---
+
+## ✅ [Fix] Enrutamiento de Landing Page y Variable Clerk
+**Sprint:** 1 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[frontend/src/App.tsx]*: Se actualizaron las rutas para que la raíz `/` apunte a `Landing` y el catálogo pase a `/home`.
+- *[frontend/src/components/HeroSection.tsx]*: Clic explícito para navegar de `/` a `/home`.
+- *[frontend/.env]*: Se creó el archivo con la variable vacía indicativa de `VITE_CLERK_PUBLISHABLE_KEY` para iniciar el Auth.
+
+### 💡 Contexto Importante
+- El landing ahora es la página por defecto.
+- Requiere reemplazar la variable de entorno real en `frontend/.env` para arrancar Vite sin errores del SDK de Clerk.
+
+---
+
 ## ⏳ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue
