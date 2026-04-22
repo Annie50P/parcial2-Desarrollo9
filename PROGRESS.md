@@ -163,6 +163,20 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 - El endpoint `POST /api/warranties` ahora es estrictamente seguro y cumple con las reglas de negocio de MongoDB requeridas.
 - Se utiliza el `userId` inyectado por el middleware de Clerk para todas las validaciones de propiedad.
 
+## ✅ [Issue 77] UI Subida de Imágenes Evidenciales de Garantía
+**Sprint:** 3 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[frontend/src/pages/NewWarranty.tsx]*: Nueva página con formulario validado por Zod y React Hook Form para reportar garantías con subida de archivos múltiples.
+- *[frontend/src/pages/WarrantySuccess.tsx]*: Vista de confirmación tras envío exitoso del ticket.
+- *[frontend/src/pages/Orders.tsx]*: Refactorización visual de la lista de pedidos con lógica de validación de 90 días para el botón de garantía.
+- *[frontend/src/App.tsx]*: Registro de las nuevas rutas de garantías protegidas por Clerk.
+
+### 💡 Contexto Importante
+- Se implementó un flujo de dos pasos: primero se suben las evidencias al storage y luego se envía el payload al backend.
+- Se mantuvo la estética "brutalist premium" con sombras marcadas y colores vibrantes.
+- El botón de garantía se inhabilita automáticamente si la orden supera los 90 días de antigüedad.
+
 ## ⏳ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue
