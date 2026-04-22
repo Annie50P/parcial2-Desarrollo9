@@ -59,6 +59,22 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 
 ---
 
+## ✅ [Issue 69] Zod Validaciones y Hono CRUD Mongo (/api/products)
+**Sprint:** 1 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[backend/package.json]*: Nuevas dependencias instaladas (`zod`, `@hono/zod-validator`).
+- *[backend/src/validators/product.validator.ts]*: Esquemas de validación de Zod para la creación y actualización de productos.
+- *[backend/src/controllers/product.controller.ts]*: Controladores para ejecutar operaciones CRUD en la BD a través del modelo Mongoose.
+- *[backend/src/routes/product.routes.ts]*: Enrutador de productos implementando middleware de validación `zValidator` de Hono.
+- *[backend/src/index.ts]*: Ruta base `/api/products` registrada en el backend.
+
+### 💡 Contexto Importante
+- Se instalaron las librerías `zod` y `@hono/zod-validator`.
+- Los datos de entrada POST y PUT son procesados por el middleware intermedio que detiene la ejecución y envía status 400 automáticamente si no cumplen las condiciones definidas.
+
+---
+
 ## ⏳ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue
