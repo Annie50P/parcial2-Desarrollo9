@@ -10,22 +10,38 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 });
 
 export const checkoutSessionController = async (c: Context) => {
-  const userId = c.get('userId'); // Extracted from Clerk Auth Middleware
-  
-  if (!userId) {
-    return c.json({ error: 'User authenticated but ID missing in context' }, 401);
-  }
-
-  const body = await c.req.json();
-  const cartItems = body.items as { productId: string, quantity: number }[];
-  
-  const productIds = cartItems.map(item => new Types.ObjectId(item.productId));
   
   try {
+    const userId = c.get('userId');
+    
+    if (!userId) {
+      return c.json({ error: 'User authenticated but ID missing in context' }, 401);
+    }
+
+    const body = await c.req.json();
+    
+    const cartItems = body.items as { productId: string, quantity: number }[];
+   
+    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+      return c.json({ error: 'Cart cannot be empty' }, 400);
+    }
+   
+    for (const item of cartItems) {
+      if (!item.productId || typeof item.productId !== 'string') {
+        return c.json({ error: 'Invalid productId: expected string' }, 400);
+      }
+      if (!item.quantity || typeof item.quantity !== 'number' || item.quantity < 1) {
+        return c.json({ error: 'Invalid quantity: must be a positive number' }, 400);
+      }
+    }
+   
+   
+    const productIds = cartItems.map(item => new Types.ObjectId(item.productId));
+    
     const dbProducts = await Product.find({ _id: { $in: productIds } });
     
     if (dbProducts.length !== cartItems.length) {
-      return c.json({ error: 'One or more products were not found in database or there are invalid ObjectIds' }, 400);
+      return c.json({ error: 'One or more products not found in database' }, 400);
     }
     
     let totalAmount = 0;
@@ -53,21 +69,18 @@ export const checkoutSessionController = async (c: Context) => {
             name: dbProduct.name,
             images: dbProduct.image_urls?.length ? [dbProduct.image_urls[0]] : [],
           },
-          unit_amount: Math.round(dbProduct.price * 100), // Stripe expects cents
+          unit_amount: Math.round(dbProduct.price * 100),
         },
         quantity: item.quantity,
       });
     }
 
-    // Clerk ID mapping to DB User ObjectID
     let localUser = await import('../models/User').then(m => m.User.findOne({ clerk_id: userId }));
     
-    // Si no encontramos al User por clerk_id, crearemos uno temporalmente para no frenar el checkout.
-    // Lo ideal es que se registre via Webhook desde la creación en Clerk, pero en entornos de prueba...
     if (!localUser) {
       localUser = await import('../models/User').then(m => m.User.create({
         clerk_id: userId,
-        email: `${userId}@clerk-auth.local`, // Fallback email
+        email: `${userId}@clerk-auth.local`,
         role: 'user'
       }));
     }
@@ -77,21 +90,22 @@ export const checkoutSessionController = async (c: Context) => {
       line_items,
       mode: 'payment',
       success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/cart`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/home`,
       metadata: {
         clerkUserId: userId
       }
     });
     
-    // Save pending Order locally
+   
+    
     const newOrder = await Order.create({
-      user_id: localUser._id,
+      userId: userId,
       total_amount: totalAmount,
       status: 'pending',
       stripe_session_id: session.id
     });
 
-    // Save Order items
+
     for (const validItem of validItems) {
       await OrderItem.create({
         order_id: newOrder._id,
@@ -104,7 +118,7 @@ export const checkoutSessionController = async (c: Context) => {
     return c.json({ session_url: session.url }, 200);
 
   } catch (error) {
-    console.error('Checkout error:', error);
+    console.error('[Checkout] Error:', error);
     return c.json({ error: 'Internal server error processing checkout' }, 500);
   }
 };

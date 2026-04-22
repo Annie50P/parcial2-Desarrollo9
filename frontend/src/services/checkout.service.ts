@@ -3,13 +3,10 @@ import type { CartItem } from '../types/cart';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 export const checkoutService = {
-  createSession: async (items: CartItem[], token: string) => {
-    const payload = {
-      items: items.map(i => ({
-        productId: i.id,
-        quantity: i.quantity
-      }))
-    };
+  createSession: async (items: any[], token: string) => {
+    // El CartDrawer ya envía productId directamente
+    const payload = { items };
+    
 
     const response = await fetch(`${BACKEND_URL}/api/checkout`, {
       method: 'POST',
@@ -22,7 +19,19 @@ export const checkoutService = {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to create checkout session');
+      console.error('[Checkout Error Full]:', errorData);
+      console.error('[Checkout Error Stringified]:', JSON.stringify(errorData));
+      
+      let errorMsg = 'Checkout failed';
+      if (typeof errorData.error === 'string') {
+        errorMsg = errorData.error;
+      } else if (Array.isArray(errorData.error)) {
+        errorMsg = errorData.error.join(', ');
+      } else if (errorData.error) {
+        errorMsg = JSON.stringify(errorData.error);
+      }
+      
+      throw new Error(errorMsg);
     }
 
     return response.json();
