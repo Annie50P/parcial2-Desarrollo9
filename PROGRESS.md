@@ -149,6 +149,20 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 - Para poder testear el script localmente se asume la inclusión de `STRIPE_WEBHOOK_SECRET` generada por la herramienta nativa de `stripe listen`.
 - Se requiere que MongoDB soporte Replica Sets para que `mongoose.startSession()` sea apto para Transaction, por lo cual se recomienda validar el setup Docker de MongoDB, de lo contrario la transacción fallbackeará en standalone.
 
+---
+
+## ✅ [Issue 76] Lógica de Garantías y Validación 90 Días (Backend)
+**Sprint:** 3 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[backend/src/validators/warranty.validator.ts]*: Creación de esquema Zod para validar `orderId` (ObjectId), `description` (min 10 chars) y `evidenceUrls`.
+- *[backend/src/controllers/warranty.controller.ts]*: Refactorización completa de `createWarrantyReport`. Se implementó lógica de "Preventivo de Fraude" (validando que la orden pertenezca al usuario) y la validación técnica de "90 días tras la compra" comparando `Date.now()` con `order.createdAt`.
+- *[backend/src/routes/warranty.routes.ts]*: Protección de rutas con `clerkAuthMiddleware` e integración de `zValidator` para la creación de reportes.
+
+### 💡 Contexto Importante
+- El endpoint `POST /api/warranties` ahora es estrictamente seguro y cumple con las reglas de negocio de MongoDB requeridas.
+- Se utiliza el `userId` inyectado por el middleware de Clerk para todas las validaciones de propiedad.
+
 ## ⏳ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue

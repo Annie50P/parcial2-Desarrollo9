@@ -1,18 +1,51 @@
 import { Context } from 'hono';
 import { WarrantyReport } from '../models/WarrantyReport';
+import { Order } from '../models/Order';
 
 export const createWarrantyReport = async (c: Context) => {
   try {
-    const body = await c.req.json();
-    const userId = c.get('userId'); // Asumiendo que hay un middleware de auth que setea esto
+    const userId = c.get('userId');
+    const { orderId, description, evidenceUrls } = await c.req.json();
 
+    if (!userId) {
+      return c.json({ error: 'Unauthorized: User ID not found in context' }, 401);
+    }
+
+    // 1. Buscar la orden
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return c.json({ error: 'Orden no encontrada' }, 404);
+    }
+
+    // 2. Validar propiedad de la orden (Preventivo de Fraude)
+    if (order.userId !== userId) {
+      return c.json({ error: 'No autorizado: La orden no pertenece a este usuario' }, 403);
+    }
+
+    // 3. Validar plazo legal de 90 días
+    const createdAt = (order as any).createdAt;
+    const diffInMs = Date.now() - createdAt.getTime();
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+    if (diffInDays > 90) {
+      return c.json({ error: 'Garantía Expirada. Plazo Legal agotado' }, 400);
+    }
+
+    // 4. Crear el reporte
     const report = new WarrantyReport({
-      ...body,
-      userId: userId || body.userId, // Fallback si no hay context pero si hay body
+      orderId,
+      userId,
+      description,
+      evidenceUrls: evidenceUrls || [],
+      status: 'pending'
     });
 
     await report.save();
-    return c.json(report, 201);
+    
+    return c.json({ 
+      ticketId: report._id, 
+      status: report.status 
+    }, 201);
   } catch (error: any) {
     return c.json({ error: error.message }, 400);
   }
