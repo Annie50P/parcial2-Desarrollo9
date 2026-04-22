@@ -5,6 +5,8 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
 import Orders from './pages/Orders';
+import NewWarranty from './pages/NewWarranty';
+import WarrantySuccess from './pages/WarrantySuccess';
 
 function App() {
   return (
@@ -20,6 +22,22 @@ function App() {
             element={
               <SignedIn>
                 <Orders />
+              </SignedIn>
+            } 
+          />
+          <Route 
+            path="/warranties/new" 
+            element={
+              <SignedIn>
+                <NewWarranty />
+              </SignedIn>
+            } 
+          />
+          <Route 
+            path="/warranties/success" 
+            element={
+              <SignedIn>
+                <WarrantySuccess />
               </SignedIn>
             } 
           />
