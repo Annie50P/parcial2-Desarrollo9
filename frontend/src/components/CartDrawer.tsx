@@ -21,16 +21,26 @@ export function CartDrawer() {
       const token = await getToken();
       if (!token) throw new Error("No hay token de autenticación");
       
-      // Asumiendo que el Store mapea .id pero aqui se llama ._id
       const payload = items.map(i => ({ 
-        id: i._id || i.id, 
+        productId: i._id || i.id, 
         quantity: i.quantity 
       }));
+      
+      console.log('[CartDrawer] Items in cart (full):', JSON.stringify(items, null, 2));
+      console.log('[CartDrawer] Payload to checkout:', payload);
 
       const { session_url } = await checkoutService.createSession(payload as any, token);
       window.location.href = session_url;
     } catch (error: any) {
-      alert(error.message || "Fallo preventivo al iniciar checkout.");
+      console.error('[Checkout Error]:', error);
+      
+      // Si el error indica productos no encontrados, limpiar el carrito
+      if (error.message?.includes('not found') || error.message?.includes('Invalid')) {
+        localStorage.removeItem('safetech-cart-storage');
+        window.location.reload();
+      } else {
+        alert(error.message || "Fallo preventivo al iniciar checkout.");
+      }
     } finally {
       setIsCheckingOut(false);
     }

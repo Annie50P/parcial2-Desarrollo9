@@ -9,6 +9,7 @@
   "dependencies": {
     "@clerk/backend": "^3.2.13",
     "@hono/zod-validator": "^0.7.6",
+    "dotenv": "^17.4.2",
     "hono": "^4.2.0",
     "mongoose": "^8.3.0",
     "stripe": "^22.0.2",

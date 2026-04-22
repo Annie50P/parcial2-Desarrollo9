@@ -1,23 +1,21 @@
 import type { Product } from '../types/product';
-import { mockProducts } from '../data/mockProducts';
 
 const API_URL = 'http://localhost:3000/api';
 
 export const getProducts = async (): Promise<Product[]> => {
-  // Temporalmente usando mockProducts para el diseño del carrito
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockProducts);
-    }, 500); // 500ms de latencia simulada
-  });
-
-  /* 
-  // Fetch real backend:
   const response = await fetch(`${API_URL}/products`);
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
   const result = await response.json();
   return result.data || [];
+
+  /* 
+  // Temporalmente usando mockProducts para el diseño del carrito
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockProducts);
+    }, 500); // 500ms de latencia simulada
+  });
   */
 };
