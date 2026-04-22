@@ -177,3 +177,23 @@ Se inicializÃ³ el proyecto frontend con React y Vite, integrando el SDK de Clerk
 ### ?? Contexto Importante
 - Se utilizó la técnica de React Portals para inyectar el Drawer al nivel de \document.body\ garantizando el control absoluto del layout y el fondo oscuro sin heredar z-indexes problemáticos del \#root\ o NavBar.
 - Se mantienen datos mockeados en \products.service.ts\ temporalmente a fines de depuración visual de la interfaz.
+
+## ? [Issue 72] Integrar Stripe Checkout (Backend/Pagos)
+**Sprint:** 2 | **Estado:** Completado
+
+### ?? Archivos Creados/Modificados
+- **backend/package.json**: Instaladas librerías stripe y @clerk/backend.
+- **backend/.env**: Variables de entorno STRIPE y CLERK añadidas.
+- **backend/src/middlewares/auth.middleware.ts**: Creado middleware para parsear JWT de Clerk y transferir auth.userId de forma segura.
+- **backend/src/models/OrderItem.ts**: Creado nuevo formato Mongoose temporal para cruzar Orders con Products de Mongo.
+- **backend/src/models/User.ts**: Creado clerk_id de enlace string mapping.
+- **backend/src/validators/checkout.validator.ts**: Creada validacion Zod {items: []} confirmando ObjectID y amounts validos > 1.
+- **backend/src/controllers/checkout.controller.ts**: Endpoint creado. Chequea y rechaza DB stocks vs payloads fake con error 400. Mapea precios propios, crea Orden pending con clerkId, y arranca Checkout create de Stripe.
+- **backend/src/routes/checkout.routes.ts**: Creada inyeccion de checkout integrando Zod validator y auth.
+- **backend/src/index.ts**: Inyectado en root router /api/checkout.
+- **frontend/src/services/checkout.service.ts**: Creado custom fetch client al backend inyectando el token JWT Clerk.
+- **frontend/src/components/CartDrawer.tsx**: Reemplazado boton por handleCheckout interactuando asíncronamente con Clerk y redirigiendo al front checkout session res.
+
+### ?? Contexto Importante
+- Validaciones estricas protegen MongoDB frente datos fakes del cliente y previenen stock en negativo con Http 400 Bad Request.
+- El checkout crea un User fallback en BD si no se hallaba previo via Clerk.
