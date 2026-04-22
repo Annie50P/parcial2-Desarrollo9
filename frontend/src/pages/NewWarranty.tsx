@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { warrantyService } from '../services/warranty.service';
+import { useAuth } from '@clerk/clerk-react';
 
 const warrantySchema = z.object({
   description: z.string()
@@ -26,6 +27,7 @@ const NewWarranty: React.FC = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId');
   const navigate = useNavigate();
+  const { getToken } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -78,9 +80,11 @@ const NewWarranty: React.FC = () => {
     try {
       setIsSubmitting(true);
       setError(null);
+      const token = await getToken();
+      if (!token) throw new Error('Unauthenticated');
 
       // 1. Subir archivos en paralelo
-      const uploadPromises = files.map(file => warrantyService.uploadEvidence(file));
+      const uploadPromises = files.map(file => warrantyService.uploadEvidence(file, token));
       const uploadResults = await Promise.all(uploadPromises);
       const evidenceUrls = uploadResults.map(res => res.url);
 
@@ -89,7 +93,7 @@ const NewWarranty: React.FC = () => {
         orderId,
         description: `[${data.reason}] ${data.description}`,
         evidenceUrls,
-      });
+      }, token);
 
       navigate('/warranties/success');
     } catch (err) {

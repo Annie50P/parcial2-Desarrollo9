@@ -11,10 +11,14 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.5",
+    "@hookform/resolvers": "^5.2.2",
     "@tanstack/react-query": "^5.99.2",
+    "axios": "^1.15.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-hook-form": "^7.73.1",
     "react-router-dom": "^7.14.2",
+    "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

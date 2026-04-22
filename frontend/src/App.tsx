@@ -7,6 +7,9 @@ import Landing from './pages/Landing';
 import Orders from './pages/Orders';
 import NewWarranty from './pages/NewWarranty';
 import WarrantySuccess from './pages/WarrantySuccess';
+import AdminDashboard from './pages/AdminDashboard';
+import Success from './pages/Success';
+import { ProtectedAdminRoute } from './components/AdminRoute';
 
 function App() {
   return (
@@ -17,29 +20,40 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route 
-            path="/orders" 
+          <Route path="/success" element={<Success />} />
+          <Route
+            path="/orders"
             element={
               <SignedIn>
                 <Orders />
               </SignedIn>
-            } 
+            }
           />
-          <Route 
-            path="/warranties/new" 
+          <Route
+            path="/warranties/new"
             element={
               <SignedIn>
                 <NewWarranty />
               </SignedIn>
-            } 
+            }
           />
-          <Route 
-            path="/warranties/success" 
+          <Route
+            path="/warranties/success"
             element={
               <SignedIn>
                 <WarrantySuccess />
               </SignedIn>
-            } 
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <SignedIn>
+                <ProtectedAdminRoute>
+                  <AdminDashboard />
+                </ProtectedAdminRoute>
+              </SignedIn>
+            }
           />
         </Routes>
       </main>

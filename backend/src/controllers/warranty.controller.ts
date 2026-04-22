@@ -61,6 +61,19 @@ export const getMyWarranties = async (c: Context) => {
   }
 };
 
+export const getAllWarranties = async (c: Context) => {
+  try {
+    // Busca todos y populea userDoc (virtual field del clerk_id) y orderId
+    const reports = await WarrantyReport.find({})
+      .populate('userDoc', 'email role')
+      .populate('orderId')
+      .exec();
+    return c.json(reports);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+};
+
 export const updateWarrantyStatus = async (c: Context) => {
   try {
     const { id } = c.req.param();

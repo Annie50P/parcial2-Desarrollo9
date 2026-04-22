@@ -17,7 +17,7 @@ export const EvidenceUploader: React.FC<EvidenceUploaderProps> = ({ onUploadSucc
     setError(null);
 
     try {
-      const { url } = await warrantyService.uploadEvidence(file);
+      const { url } = await warrantyService.uploadEvidence(file, '');
       onUploadSuccess(url);
     } catch (err: any) {
       setError('Error al subir la imagen. Intenta de nuevo.');
