@@ -137,6 +137,18 @@ Se inicializÃ³ el proyecto frontend con React y Vite, integrando el SDK de Clerk
 
 ---
 
+## âœ… [Issue 73] Webhooks de Stripe y CreaciÃ²n de Orden (Backend/DB)
+**Sprint:** 2 | **Estado:** Completado
+
+### ğŸ“‚ Archivos Creados/Modificados
+- *[backend/src/controllers/webhook.controller.ts]*: Controlador que recibe y valida el webhook firmado proveniente de Stripe comprobando `stripe-signature`. Implementa la lÃ³gica transaccional de Mongoose para cambiar el estatus de la Orden, persistir los Ãtems y reducir el Stock de Productos.
+- *[backend/src/routes/webhook.routes.ts]*: Enrutador expuesto para ser consumido pÃºblicamente, registrando que la ruta debe procesar el payload sin middlewares bloqueantes. 
+- *[backend/src/index.ts]*: Ruta base `/api/webhooks` registrada apuuntando a `webhookRoutes`.
+
+### ğŸ’¡ Contexto Importante
+- Para poder testear el script localmente se asume la inclusiÃ³n de `STRIPE_WEBHOOK_SECRET` generada por la herramienta nativa de `stripe listen`.
+- Se requiere que MongoDB soporte Replica Sets para que `mongoose.startSession()` sea apto para Transaction, por lo cual se recomienda validar el setup Docker de MongoDB, de lo contrario la transacciÃ³n fallbackearÃ¡ en standalone.
+
 ## â³ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue
@@ -154,36 +166,36 @@ Se inicializÃ³ el proyecto frontend con React y Vite, integrando el SDK de Clerk
 **Sprint:** 2 | **Estado:** Completado 
 
 ### ?? Archivos Creados/Modificados
-- *[frontend/src/store/cart.store.ts]*: Se actualizaron los métodos de añadir y modificar cantidad validando que el user nunca pueda sobrepasar el stock provisto por el backend. También se agregó estado local para manejar si el Drawer está abierto o no.
-- *[frontend/src/components/CartIcon.tsx]*: Se creó este componente para el navar que mapea el contador y aplica un keyframe bounce cada vez que salta (+1).
+- *[frontend/src/store/cart.store.ts]*: Se actualizaron los mï¿½todos de aï¿½adir y modificar cantidad validando que el user nunca pueda sobrepasar el stock provisto por el backend. Tambiï¿½n se agregï¿½ estado local para manejar si el Drawer estï¿½ abierto o no.
+- *[frontend/src/components/CartIcon.tsx]*: Se creï¿½ este componente para el navar que mapea el contador y aplica un keyframe bounce cada vez que salta (+1).
 - *[frontend/src/components/CartDrawer.tsx]*: Componente principal estilo sidebar/offcanvas. Itera sobre los items procesando el precio Subtotal y renderizando cada control para cambiar stock y remover.
-- *[frontend/src/components/Header.tsx]*: Añadido el componente <CartIcon /> y el componente <CartDrawer /> inyectado para que viva de manera global disponible en cualquier vista.
-- *[frontend/src/index.css]*: Se añadieron los estilos responsivos del Drawer, Backdrop y animaciones usando CSS puro para que respete el guideline "brutalist premium".
+- *[frontend/src/components/Header.tsx]*: Aï¿½adido el componente <CartIcon /> y el componente <CartDrawer /> inyectado para que viva de manera global disponible en cualquier vista.
+- *[frontend/src/index.css]*: Se aï¿½adieron los estilos responsivos del Drawer, Backdrop y animaciones usando CSS puro para que respete el guideline "brutalist premium".
 
 ### ?? Contexto Importante
-- Todo reside en LocalStorage gracias al middleware persist() instanciado previamente de Zustand evitando pérdida temporal de sesión (refress no borra los items).
-- No hubo necesidad de librerías extras (framer o gsap).
+- Todo reside en LocalStorage gracias al middleware persist() instanciado previamente de Zustand evitando pï¿½rdida temporal de sesiï¿½n (refress no borra los items).
+- No hubo necesidad de librerï¿½as extras (framer o gsap).
 
-## ? [Issue 71] Implementación UI Carrito y Mocks
+## ? [Issue 71] Implementaciï¿½n UI Carrito y Mocks
 **Sprint:** 2 | **Estado:** Completado 
 
 ### ?? Archivos Creados/Modificados
-- *[frontend/src/components/CartDrawer.tsx]*: Componente de UI tipo offcanvas renderizado con React Portals para evadir el contexto del header. Cálculos de subtotales en tiempo real y validación visual contra stock máximo.
-- *[frontend/src/components/CartIcon.tsx]*: Botón de navbar animado con un badge de notificaciones dinámico asociado al store de Zustand.
-- *[frontend/src/index.css]*: Estilos del drawer, el botón del carrito y animaciones (slideInRight, ubbleBounce). Reparación de conflictos de z-index con el header.
+- *[frontend/src/components/CartDrawer.tsx]*: Componente de UI tipo offcanvas renderizado con React Portals para evadir el contexto del header. Cï¿½lculos de subtotales en tiempo real y validaciï¿½n visual contra stock mï¿½ximo.
+- *[frontend/src/components/CartIcon.tsx]*: Botï¿½n de navbar animado con un badge de notificaciones dinï¿½mico asociado al store de Zustand.
+- *[frontend/src/index.css]*: Estilos del drawer, el botï¿½n del carrito y animaciones (slideInRight, ubbleBounce). Reparaciï¿½n de conflictos de z-index con el header.
 - *[frontend/src/data/mockProducts.ts]*: Datos Mocks para pruebas visuales en base a la interfaz \Product\.
 - *[frontend/src/services/products.service.ts]*: Servicio actualizado temporalmente para retornar la lista mockeada con retraso de red simulado (500ms).
 
 ### ?? Contexto Importante
-- Se utilizó la técnica de React Portals para inyectar el Drawer al nivel de \document.body\ garantizando el control absoluto del layout y el fondo oscuro sin heredar z-indexes problemáticos del \#root\ o NavBar.
-- Se mantienen datos mockeados en \products.service.ts\ temporalmente a fines de depuración visual de la interfaz.
+- Se utilizï¿½ la tï¿½cnica de React Portals para inyectar el Drawer al nivel de \document.body\ garantizando el control absoluto del layout y el fondo oscuro sin heredar z-indexes problemï¿½ticos del \#root\ o NavBar.
+- Se mantienen datos mockeados en \products.service.ts\ temporalmente a fines de depuraciï¿½n visual de la interfaz.
 
 ## ? [Issue 72] Integrar Stripe Checkout (Backend/Pagos)
 **Sprint:** 2 | **Estado:** Completado
 
 ### ?? Archivos Creados/Modificados
-- **backend/package.json**: Instaladas librerías stripe y @clerk/backend.
-- **backend/.env**: Variables de entorno STRIPE y CLERK añadidas.
+- **backend/package.json**: Instaladas librerï¿½as stripe y @clerk/backend.
+- **backend/.env**: Variables de entorno STRIPE y CLERK aï¿½adidas.
 - **backend/src/middlewares/auth.middleware.ts**: Creado middleware para parsear JWT de Clerk y transferir auth.userId de forma segura.
 - **backend/src/models/OrderItem.ts**: Creado nuevo formato Mongoose temporal para cruzar Orders con Products de Mongo.
 - **backend/src/models/User.ts**: Creado clerk_id de enlace string mapping.
@@ -192,7 +204,7 @@ Se inicializÃ³ el proyecto frontend con React y Vite, integrando el SDK de Clerk
 - **backend/src/routes/checkout.routes.ts**: Creada inyeccion de checkout integrando Zod validator y auth.
 - **backend/src/index.ts**: Inyectado en root router /api/checkout.
 - **frontend/src/services/checkout.service.ts**: Creado custom fetch client al backend inyectando el token JWT Clerk.
-- **frontend/src/components/CartDrawer.tsx**: Reemplazado boton por handleCheckout interactuando asíncronamente con Clerk y redirigiendo al front checkout session res.
+- **frontend/src/components/CartDrawer.tsx**: Reemplazado boton por handleCheckout interactuando asï¿½ncronamente con Clerk y redirigiendo al front checkout session res.
 
 ### ?? Contexto Importante
 - Validaciones estricas protegen MongoDB frente datos fakes del cliente y previenen stock en negativo con Http 400 Bad Request.
