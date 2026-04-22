@@ -1,9 +1,13 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { connectDB } from './db/connection';
 import healthRoutes from './routes/health.routes';
 import productRoutes from './routes/product.routes';
 
 const app = new Hono();
+
+// Global Middlewares
+app.use('/*', cors());
 
 // Attempt to connect to DB
 connectDB();
