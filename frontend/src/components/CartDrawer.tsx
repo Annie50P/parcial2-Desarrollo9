@@ -1,10 +1,40 @@
 import { useCartStore } from '../store/cart.store';
 import { createPortal } from 'react-dom';
+import { useState } from 'react';
+import { useAuth } from '@clerk/clerk-react';
+import { checkoutService } from '../services/checkout.service';
 
 export function CartDrawer() {
   const { items, isDrawerOpen, toggleDrawer, updateQuantity, removeItem, clearCart } = useCartStore();
+  const { getToken, isSignedIn } = useAuth();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+  const handleCheckout = async () => {
+    if (!isSignedIn) {
+      alert("Por favor inicia sesión para comprar.");
+      return;
+    }
+    try {
+      setIsCheckingOut(true);
+      const token = await getToken();
+      if (!token) throw new Error("No hay token de autenticación");
+      
+      // Asumiendo que el Store mapea .id pero aqui se llama ._id
+      const payload = items.map(i => ({ 
+        id: i._id || i.id, 
+        quantity: i.quantity 
+      }));
+
+      const { session_url } = await checkoutService.createSession(payload as any, token);
+      window.location.href = session_url;
+    } catch (error: any) {
+      alert(error.message || "Fallo preventivo al iniciar checkout.");
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   if (!isDrawerOpen) return null;
 
@@ -64,8 +94,13 @@ export function CartDrawer() {
             </div>
             <p className="cart-taxes">Se calcularán impuestos y envíos al finalizar.</p>
             <div className="cart-footer-buttons">
-              <button className="btn-primary" style={{ width: '100%', marginBottom: '10px' }}>
-                <span>Checkout (Pronto)</span>
+              <button 
+                className="btn-primary" 
+                style={{ width: '100%', marginBottom: '10px' }}
+                onClick={handleCheckout}
+                disabled={isCheckingOut}
+              >
+                <span>{isCheckingOut ? 'Procesando...' : 'Ir a Pagar'}</span>
               </button>
               <button className="btn-outline" style={{ width: '100%' }} onClick={clearCart}>
                 Vaciar Carrito
