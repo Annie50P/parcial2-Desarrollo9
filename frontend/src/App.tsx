@@ -5,9 +5,9 @@ import Login from './pages/Login';
 
 function App() {
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif' }}>
+    <div>
       <Header />
-      <main style={{ padding: '2rem' }}>
+      <main>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />

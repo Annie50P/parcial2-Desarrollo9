@@ -92,6 +92,20 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 
 ---
 
+## ✅ [Issue 71] Arquitectura Estado Carrito (Zustand)
+**Sprint:** 2 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[frontend/package.json]*: Instalación de `zustand`.
+- *[frontend/src/types/cart.ts]*: Interfaces `CartItem` y `CartState`.
+- *[frontend/src/store/cart.store.ts]*: Store global para manejar la lógica del carrito (agregar, remover, actualizar, limpiar).
+- *[frontend/src/components/Header.tsx]*: Se integró el store para leer la cantidad de items en el carrito.
+
+### 💡 Contexto Importante
+- Se introdujo `zustand` para el manejo de estado global ligero. El store administra únicamente el estado del cliente (UI) del carrito antes de procesar una orden y persiste la sesión en localStorage del navegador.
+
+---
+
 ## ⏳ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue

@@ -1,38 +1,48 @@
 import React from 'react';
 import { useProducts } from '../hooks/useProducts';
+import { useCartStore } from '../store/cart.store';
 
 export const ProductList: React.FC = () => {
   const { data: products, isLoading, isError, error } = useProducts();
+  const addItem = useCartStore((state) => state.addItem);
 
   if (isLoading) {
-    return <div className="text-center py-4">Cargando productos...</div>;
+    return <div style={{textAlign: 'center', marginTop: '4rem'}}>Cargando productos...</div>;
   }
 
   if (isError) {
-    return <div className="text-red-500 text-center py-4">Error: {error?.message}</div>;
+    return <div style={{color: 'red', textAlign: 'center'}}>Error: {error?.message}</div>;
   }
 
   if (!products || products.length === 0) {
-    return <div className="text-center py-4">No hay productos disponibles.</div>;
+    return <div style={{textAlign: 'center', marginTop: '4rem'}}>No hay productos disponibles.</div>;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+    <div className="editorial-grid">
       {products.map((product) => (
-        <div key={product._id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-          {product.image_urls && product.image_urls.length > 0 && (
-             <img src={product.image_urls[0]} alt={product.name} className="w-full h-48 object-cover mb-4 rounded" />
-          )}
-          <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-          <p className="text-gray-600 mb-2 truncate">{product.description}</p>
-          <div className="flex justify-between items-center mt-4">
-            <span className="text-2xl font-bold">${product.price.toFixed(2)}</span>
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-              Condición: {product.condition}
-            </span>
+        <article key={product._id} className="product-card stagger-1">
+          <div className="product-image-container">
+             <span className="product-badge">{product.condition}</span>
+             <img 
+               src={product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : `https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=400&h=500&random=${product._id}`} 
+               alt={product.name} 
+               className="product-image" 
+             />
           </div>
-          <p className="text-sm text-gray-500 mt-2">Stock disponible: {product.stock}</p>
-        </div>
+          <div className="product-info">
+            <h3 className="product-title">{product.name}</h3>
+            <div className="product-price">${product.price.toFixed(2)}</div>
+            <p className="product-desc truncate">{product.description}</p>
+            <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem'}}>Stock disponible: {product.stock}</p>
+            <button 
+              onClick={() => addItem(product)}
+              className="btn-primary"
+            >
+              <span>Añadir al carrito</span>
+            </button>
+          </div>
+        </article>
       ))}
     </div>
   );
