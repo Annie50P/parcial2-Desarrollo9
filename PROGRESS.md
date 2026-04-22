@@ -75,6 +75,23 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 
 ---
 
+## ✅ [Issue 70] Consumo API via TanStack (Products)
+**Sprint:** 1 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[frontend/package.json]*: Se instaló `@tanstack/react-query` como dependencia y cliente para manejar requests HTTP y caché.
+- *[frontend/src/main.tsx]*: Se importó `QueryClient` y `QueryClientProvider` para habilitar el uso de tanstack en la app.
+- *[frontend/src/types/product.ts]*: Interfaz `Product` basada en el modelo de base de datos.
+- *[frontend/src/services/products.service.ts]*: Función `fetch` genérica para `/api/products`.
+- *[frontend/src/hooks/useProducts.ts]*: Custom hook mapeado con `useQuery` de TanStack.
+- *[frontend/src/components/ProductList.tsx]*: Componente de UI que mapea el hook para manejar los estados `isLoading`, `isError` y mostrar la grilla de datos.
+- *[frontend/src/pages/Home.tsx]*: Se agregó el componente `<ProductList />` a la vista principal.
+
+### 💡 Contexto Importante
+- Para todo nuevo llamado a la API, debes crear su servicio correspondiente dentro de `services/` y un custom hook que implemente `@tanstack/react-query` en `hooks/` antes de utilizarlo en el UI.
+
+---
+
 ## ⏳ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue
