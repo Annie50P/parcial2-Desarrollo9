@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface NavItem {
@@ -9,6 +10,8 @@ interface NavItem {
 interface AdminSidebarProps {
   onNavigate?: (section: string) => void;
   activeSection?: string;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
 const OrdersIcon = () => (
@@ -41,17 +44,20 @@ const navItems: NavItem[] = [
   { id: 'products', label: 'Productos', icon: <ProductsIcon /> },
 ];
 
-export default function AdminSidebar({ onNavigate, activeSection = 'orders' }: AdminSidebarProps) {
+export default function AdminSidebar({ onNavigate, activeSection = 'orders', isOpen = false, onToggle }: AdminSidebarProps) {
   const location = useLocation();
 
   const handleNavClick = (id: string) => {
     if (onNavigate) {
       onNavigate(id);
     }
+    if (onToggle && window.innerWidth <= 768) {
+      onToggle();
+    }
   };
 
   return (
-    <aside className="admin-sidebar">
+    <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="admin-sidebar-header">
         <Link to="/" className="admin-sidebar-brand">SafeTech</Link>
         <span className="admin-sidebar-badge">Admin</span>

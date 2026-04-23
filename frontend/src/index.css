@@ -1629,6 +1629,167 @@ code {
   padding: 2rem;
 }
 
+/* Responsive Admin */
+@media (max-width: 1024px) {
+  .admin-sidebar {
+    width: 220px;
+  }
+  
+  .admin-layout {
+    margin-left: 220px;
+    padding: 1.5rem;
+  }
+  
+  .admin-sidebar-brand {
+    font-size: 1.25rem;
+  }
+  
+  .admin-tabs {
+    overflow-x: auto;
+  }
+  
+  .admin-tab {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .admin-layout {
+    margin-left: 0;
+    padding: 1rem;
+    padding-top: 4rem;
+  }
+  
+  .admin-page {
+    padding: 1rem 0;
+  }
+  
+  .admin-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+  }
+  
+  .admin-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .admin-header p {
+    font-size: 0.9rem;
+  }
+  
+  .stats-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-card-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .stat-card-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .stat-card-value {
+    font-size: 1.25rem;
+  }
+  
+  .stat-card-label {
+    font-size: 0.7rem;
+  }
+  
+  .admin-tabs {
+    gap: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .admin-tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.75rem;
+  }
+  
+  .admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .admin-table {
+    min-width: 600px;
+    font-size: 0.85rem;
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 0.75rem;
+  }
+  
+  .mobile-menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    margin: 0.5rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .modal-form {
+    padding: 1rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .modal-actions .btn-primary,
+  .modal-actions .btn-secondary {
+    width: 100%;
+  }
+}
+
 /* Admin Modal */
 .modal-overlay {
   position: fixed;

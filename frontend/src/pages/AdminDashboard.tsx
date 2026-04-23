@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminDashboard() {
   const { getToken, isLoaded } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('orders');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
@@ -73,8 +74,47 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <AdminSidebar activeSection={activeTab} onNavigate={(section) => setActiveTab(section as TabType)} />
+      <AdminSidebar 
+        activeSection={activeTab} 
+        onNavigate={(section) => setActiveTab(section as TabType)}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+      />
+      {sidebarOpen && (
+        <div 
+          className="sidebar-overlay" 
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 99,
+            display: window.innerWidth <= 768 ? 'block' : 'none'
+          }}
+        />
+      )}
       <main className="admin-layout">
+        <button 
+          className="mobile-menu-toggle"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          style={{
+            display: 'none',
+            position: 'fixed',
+            top: '1rem',
+            left: '1rem',
+            zIndex: 101,
+            background: 'var(--accent)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.75rem',
+            cursor: 'pointer'
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{ width: 24, height: 24 }}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
         <div className="admin-page">
           <div className="page-container">
             <div className="admin-header">
