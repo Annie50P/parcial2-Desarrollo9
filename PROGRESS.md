@@ -285,3 +285,19 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 ### Contexto Importante
 - Variable requerida en backend: `STRIPE_SECRET_KEY`.
 - Si Stripe devuelve error de configuracion o payload, ahora el frontend mostrara un mensaje especifico en lugar del genrico `Internal server error processing checkout`.
+
+
+---
+
+## ✅ [Issue 79] Mejoras de UI (Landing y Admin Dashboard)
+**Sprint:** 4 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[frontend/src/index.css]*: Se ajustó el botón `.btn-outline` para el Login, copiando el estilo y `hover` del carrito.
+- *[frontend/src/components/Header.tsx]*: Se mejoró la renderización condicional para ocultar "Mis Pedidos" a los administradores. Además, se adaptó su diseño para verse idéntico al botón de Carrito, usando la clase `.cart-icon-btn` y un ícono SVG.
+- *[frontend/src/components/HeroSection.tsx]*: Se eliminó el botón redundante de "Cómo funciona".
+- *[frontend/src/pages/AdminDashboard.tsx]*: Se ajustó la tabla de "Órdenes" para mostrar el email del cliente extraído con `populate`.
+- *[backend/src/models/Order.ts]*, *[backend/src/controllers/order.controller.ts]*, *[backend/src/controllers/checkout.controller.ts]*: Se incluyó el virtual schema de `userDoc` y la extracción del correo real proveniente de Clerk durante el evento de pago.
+
+### 💡 Contexto Importante
+- Implementaciones enfocadas en la experiencia de usuario y resolución de bugs visuales y de datos en perfiles (`@clerk-auth.local`).

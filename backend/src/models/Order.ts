@@ -12,4 +12,14 @@ const orderSchema = new Schema({
   }]
 }, { timestamps: true });
 
+orderSchema.virtual('userDoc', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: 'clerk_id',
+  justOne: true
+});
+
+orderSchema.set('toJSON', { virtuals: true });
+orderSchema.set('toObject', { virtuals: true });
+
 export const Order = model('Order', orderSchema);

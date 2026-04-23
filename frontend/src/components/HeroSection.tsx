@@ -98,13 +98,6 @@ export const HeroSection: React.FC = () => {
             >
               Ver catálogo
             </button>
-            <Link
-              to="/home"
-              className="btn-secondary"
-              style={{ padding: '16px 36px', fontSize: '0.9rem', color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
-            >
-              Cómo funciona
-            </Link>
           </div>
 
           <div style={{
