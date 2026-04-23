@@ -64,3 +64,32 @@ export const getOrderBySession = async (c: Context) => {
     return c.json({ error: 'Failed to fetch order' }, 500);
   }
 };
+
+export const getAllOrders = async (c: Context) => {
+  try {
+    const ordersData = await Order.find()
+      .sort({ createdAt: -1 })
+      .populate('userId', 'email')
+      .lean();
+
+    const orderIds = ordersData.map(o => o._id);
+    const relatedItems = await OrderItem.find({ order_id: { $in: orderIds } })
+      .populate('product_id')
+      .lean();
+
+    const orders = ordersData.map(order => {
+      const items = relatedItems
+        .filter(item => String(item.order_id) === String(order._id))
+        .map(item => ({
+          ...item,
+          product: item.product_id,
+        }));
+      return { ...order, items };
+    });
+
+    return c.json(orders);
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    return c.json({ error: 'Failed to fetch orders' }, 500);
+  }
+};

@@ -19,5 +19,13 @@ export const ordersService = {
       }
     });
     return response.data;
+  },
+  getAllOrders: async (token: string): Promise<Order[]> => {
+    const response = await axios.get(`${API_URL}/orders`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
   }
 };

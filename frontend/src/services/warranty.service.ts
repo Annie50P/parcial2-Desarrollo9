@@ -15,22 +15,34 @@ export const warrantyService = {
       body: formData,
     });
 
-    if (!response.ok) throw new Error('Failed to upload evidence');
-    return response.json();
+    const result = await response.json();
+
+    if (!response.ok) {
+      const errorMsg = result?.error || 'Failed to upload evidence';
+      throw new Error(errorMsg);
+    }
+
+    return result;
   },
 
   async createWarranty(data: CreateWarrantyDTO, token: string): Promise<IWarranty> {
     const response = await fetch(`${API_URL}/warranties`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify(data),
     });
 
-    if (!response.ok) throw new Error('Failed to create warranty report');
-    return response.json();
+    const result = await response.json();
+
+    if (!response.ok) {
+      const errorMsg = result?.error || 'Failed to create warranty report';
+      throw new Error(errorMsg);
+    }
+
+    return result;
   },
 
   async getMyWarranties(token: string): Promise<IWarranty[]> {
@@ -56,13 +68,13 @@ export const warrantyService = {
   async updateWarrantyStatus(id: string, status: string, token: string, repairNotes?: string): Promise<IWarranty> {
     const response = await fetch(`${API_URL}/warranties/${id}/status`, {
       method: 'PUT',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({ status, repairNotes }),
     });
-    
+
     if (!response.ok) throw new Error('Failed to update warranty status');
     return response.json();
   }

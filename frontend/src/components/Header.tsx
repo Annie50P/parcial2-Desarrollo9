@@ -13,7 +13,6 @@ export default function Header() {
 
   useEffect(() => {
     const storedUserId = localStorage.getItem(CART_USER_KEY);
-
     if (userId) {
       if (storedUserId && storedUserId !== userId) {
         clearCart();
@@ -24,13 +23,13 @@ export default function Header() {
 
   return (
     <header className="nav-header">
-      <a href="/" className="nav-brand">SafeTech</a>
+      <Link to="/" className="nav-brand">SafeTech</Link>
 
       <nav className="nav-actions">
         <CartIcon />
 
         <SignedIn>
-          <Link to="/orders" className="btn-outline" style={{ marginRight: '10px' }}>
+          <Link to="/orders" className="nav-link">
             Mis Pedidos
           </Link>
         </SignedIn>
@@ -38,7 +37,7 @@ export default function Header() {
         <SignedOut>
           <SignInButton mode="modal">
             <button className="btn-outline">
-              Sign In
+              Iniciar Sesión
             </button>
           </SignInButton>
         </SignedOut>

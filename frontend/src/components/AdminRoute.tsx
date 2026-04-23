@@ -1,40 +1,113 @@
-import { useEffect } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/clerk-react';
+import { Navigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 interface ProtectedAdminRouteProps {
   children: React.ReactNode;
 }
 
-export function ProtectedAdminRoute({ children }: ProtectedAdminRouteProps) {
-  const { isLoaded, orgRole } = useAuth();
-  const { user } = useUser();
-  const navigate = useNavigate();
+interface MeResponse {
+  isAdmin: boolean;
+  role: string;
+}
 
-  const userRole = orgRole || user?.publicMetadata?.role as string | undefined;
+export function ProtectedAdminRoute({ children }: ProtectedAdminRouteProps) {
+  const { isLoaded, getToken } = useAuth();
+  const [verified, setVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (isLoaded && user && userRole !== 'admin') {
-      navigate('/home', { replace: true });
-    }
-  }, [isLoaded, user, userRole, navigate]);
+    const verifyAdmin = async () => {
+      if (!isLoaded) return;
 
-  if (!isLoaded) {
-    return null;
+      try {
+        const token = await getToken();
+        if (!token) {
+          setVerified(false);
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data: MeResponse = await response.json();
+          setVerified(data.isAdmin);
+        } else {
+          setVerified(false);
+        }
+      } catch (error) {
+        console.error('[AdminRoute] Verification error:', error);
+        setVerified(false);
+      }
+    };
+
+    verifyAdmin();
+  }, [isLoaded, getToken]);
+
+  if (isLoaded && verified === null) {
+    return (
+      <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center">
+        <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-bounce font-black uppercase italic">
+          Verificando acceso...
+        </div>
+      </div>
+    );
   }
 
-  if (userRole !== 'admin') {
+  if (isLoaded && verified === false) {
     return <Navigate to="/home" replace />;
+  }
+
+  if (!isLoaded || verified !== true) {
+    return null;
   }
 
   return <>{children}</>;
 }
 
 export function useAdminCheck() {
-  const { isLoaded, orgRole } = useAuth();
-  const { user } = useUser();
+  const { isLoaded, getToken } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const userRole = orgRole || user?.publicMetadata?.role as string | undefined;
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!isLoaded) return;
 
-  return { isAdmin: isLoaded && userRole === 'admin', isLoaded, userRole };
+      try {
+        const token = await getToken();
+        if (!token) {
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data: MeResponse = await response.json();
+          setIsAdmin(data.isAdmin);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch {
+        setIsAdmin(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAdmin();
+  }, [isLoaded, getToken]);
+
+  return { isAdmin, loading, isLoaded };
 }

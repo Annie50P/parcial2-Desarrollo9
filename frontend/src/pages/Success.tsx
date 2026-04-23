@@ -6,11 +6,7 @@ import { ordersService } from '../services/orders.service';
 import type { Order } from '../types/order';
 
 interface OrderItem {
-  product: {
-    name: string;
-    image_urls?: string[];
-    price: number;
-  };
+  product: { name: string; image_urls?: string[]; price: number };
   quantity: number;
   price: number;
 }
@@ -22,128 +18,95 @@ export default function Success() {
   const clearCart = useCartStore(state => state.clearCart);
 
   const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionId) {
-      clearCart();
-    }
+    if (sessionId) clearCart();
   }, [sessionId, clearCart]);
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!sessionId) return;
-
+      if (!sessionId) { setLoading(false); return; }
       try {
-        setLoading(true);
-        setError(null);
         const token = await getToken();
-        if (!token) {
-          setError('No autenticado');
-          return;
-        }
+        if (!token) throw new Error('Unauthenticated');
         const orderData = await ordersService.getOrderBySession(sessionId, token);
         setOrder(orderData);
       } catch (err: any) {
-        console.error('Error fetching order:', err);
-        setError(err.response?.data?.error || err.message || 'Error al cargar los detalles');
+        setError(err.message || 'Error al cargar detalles');
       } finally {
         setLoading(false);
       }
     };
-
     fetchOrder();
   }, [sessionId, getToken]);
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f0f0f0] p-6">
-      <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-10 max-w-2xl w-full">
-        <h1 className="text-4xl font-black mb-2 uppercase italic text-green-600 text-center">¡Pago Exitoso!</h1>
-        <p className="mb-6 font-bold text-lg text-center">Tu orden ha sido procesada correctamente.</p>
-
-        {loading && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Cargando detalles del pedido...</p>
+    <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center p-6">
+      <div className="page-container" style={{ maxWidth: 640 }}>
+        <div className="card animate-slide-up" style={{ padding: '2.5rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✓</div>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: 'var(--success)' }}>¡Pago Exitoso!</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Tu pedido ha sido procesado correctamente.</p>
           </div>
-        )}
 
-        {error && (
-          <div className="bg-red-100 border-2 border-red-500 p-4 mb-6">
-            <p className="text-red-700 font-semibold">{error}</p>
-          </div>
-        )}
+          {loading && <div className="loading">Cargando detalles...</div>}
 
-        {order && (
-          <div className="border-2 border-black p-4 mb-6">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b-2 border-black">
-              <div>
-                <p className="text-xs font-semibold uppercase text-gray-500">Nro. de Orden</p>
-                <p className="font-bold text-sm">{order._id}</p>
+          {error && <div className="alert alert-error">{error}</div>}
+
+          {order && (
+            <div style={{ border: '2px solid var(--border)', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.25rem', borderBottom: '2px solid var(--border)', background: 'var(--bg-muted)' }}>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--text-muted)' }}>Fecha</p>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 600 }}>{formatDate(order.createdAt as unknown as string)}</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--text-muted)' }}>Total</p>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 600 }}>${order.total_amount?.toFixed(2)}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold uppercase text-gray-500">Fecha</p>
-                <p className="font-bold text-sm">{formatDate(order.createdAt as unknown as string)}</p>
-              </div>
-            </div>
 
-            <div className="mb-4">
-              <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Productos</p>
-              <div className="space-y-3">
+              <div style={{ padding: '1.25rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Productos
+                </p>
                 {(order.items as unknown as OrderItem[]).map((item, index) => (
-                  <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 border border-gray-300">
-                    <div className="w-16 h-16 bg-gray-200 flex-shrink-0 overflow-hidden">
-                      {item.product?.image_urls && item.product.image_urls.length > 0 ? (
-                        <img
-                          src={item.product.image_urls[0]}
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
-                        />
+                  <div key={index} style={{ display: 'flex', gap: '1rem', padding: '0.75rem', border: '2px solid var(--border)', marginBottom: '0.75rem', alignItems: 'center' }}>
+                    <div style={{ width: 60, height: 60, flexShrink: 0, border: '2px solid var(--border)', overflow: 'hidden' }}>
+                      {item.product?.image_urls?.[0] ? (
+                        <img src={item.product.image_urls[0]} alt={item.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Sin img</div>
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Sin</div>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm">{item.product?.name}</p>
-                      <p className="text-xs text-gray-500">Cantidad: {item.quantity}</p>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 600, marginBottom: '2px' }}>{item.product?.name}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Cantidad: {item.quantity}</p>
                     </div>
-                    <p className="font-bold text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p style={{ fontWeight: 700 }}>${(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
             </div>
+          )}
 
-            <div className="flex justify-between items-center pt-3 border-t-2 border-black">
-              <p className="font-black uppercase text-lg">Total</p>
-              <p className="font-black text-2xl">${order.total_amount?.toFixed(2)}</p>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <Link to="/orders" className="btn-primary" style={{ width: '100%', textAlign: 'center' }}>
+              Ver mis pedidos
+            </Link>
+            <Link to="/home" className="btn-secondary" style={{ width: '100%', textAlign: 'center' }}>
+              Continuar comprando
+            </Link>
           </div>
-        )}
-
-        <div className="space-y-3">
-          <Link
-            to="/orders"
-            className="block w-full bg-black text-white font-black py-3 px-6 hover:bg-white hover:text-black border-2 border-black transition-colors uppercase italic text-center"
-          >
-            Ver mis pedidos
-          </Link>
-          <Link
-            to="/home"
-            className="block w-full bg-white text-black font-black py-3 px-6 hover:bg-black hover:text-white border-2 border-black transition-colors uppercase italic text-center"
-          >
-            Seguir comprando
-          </Link>
         </div>
       </div>
     </div>

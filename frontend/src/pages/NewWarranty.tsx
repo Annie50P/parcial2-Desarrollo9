@@ -7,19 +7,19 @@ import { warrantyService } from '../services/warranty.service';
 import { useAuth } from '@clerk/clerk-react';
 
 const warrantySchema = z.object({
+  reason: z.string().min(1, 'Selecciona un motivo'),
   description: z.string()
     .min(10, 'La descripción debe tener al menos 10 caracteres')
-    .max(500, 'La descripción no puede exceder los 500 caracteres'),
-  reason: z.string().min(1, 'Debe seleccionar un motivo'),
+    .max(500, 'Máximo 500 caracteres'),
 });
 
 type WarrantyFormData = z.infer<typeof warrantySchema>;
 
 const REASONS = [
   'Falla de fábrica',
-  'Producto dañado en el envío',
-  'Software/Error de sistema',
-  'Batería/Carga',
+  'Producto dañado en tránsito',
+  'Error de software',
+  'Problema de batería',
   'Otro',
 ];
 
@@ -33,25 +33,18 @@ const NewWarranty: React.FC = () => {
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<WarrantyFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<WarrantyFormData>({
     resolver: zodResolver(warrantySchema),
   });
 
   if (!orderId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f0f0f0] p-6">
-        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 max-w-md w-full">
-          <h1 className="text-2xl font-black mb-4 uppercase italic">Error</h1>
-          <p className="mb-6 font-bold">No se especificó un ID de orden válido.</p>
-          <button
-            onClick={() => navigate('/orders')}
-            className="w-full bg-black text-white font-black py-3 px-6 hover:bg-white hover:text-black border-2 border-black transition-colors uppercase italic"
-          >
-            Volver a mis pedidos
+      <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center p-6">
+        <div className="card" style={{ maxWidth: 400, padding: '2rem', textAlign: 'center' }}>
+          <h2 style={{ marginBottom: '1rem' }}>Orden no especificada</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Selecciona un pedido desde "Mis Pedidos" para reportar una garantía.</p>
+          <button onClick={() => navigate('/orders')} className="btn-primary" style={{ width: '100%' }}>
+            Ver mis pedidos
           </button>
         </div>
       </div>
@@ -61,19 +54,14 @@ const NewWarranty: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
-      setFiles((prev) => [...prev, ...selectedFiles]);
-      
-      const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
-      setPreviews((prev) => [...prev, ...newPreviews]);
+      setFiles(prev => [...prev, ...selectedFiles]);
+      setPreviews(prev => [...prev, ...selectedFiles.map(file => URL.createObjectURL(file))]);
     }
   };
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => {
-      URL.revokeObjectURL(prev[index]);
-      return prev.filter((_, i) => i !== index);
-    });
+    setPreviews(prev => { URL.revokeObjectURL(prev[index]); return prev.filter((_, i) => i !== index); });
   };
 
   const onSubmit = async (data: WarrantyFormData) => {
@@ -83,22 +71,23 @@ const NewWarranty: React.FC = () => {
       const token = await getToken();
       if (!token) throw new Error('Unauthenticated');
 
-      // 1. Subir archivos en paralelo
-      const uploadPromises = files.map(file => warrantyService.uploadEvidence(file, token));
-      const uploadResults = await Promise.all(uploadPromises);
-      const evidenceUrls = uploadResults.map(res => res.url);
+      let evidenceUrls: string[] = [];
+      if (files.length > 0) {
+        const uploadPromises = files.map(file => warrantyService.uploadEvidence(file, token));
+        const uploadResults = await Promise.all(uploadPromises);
+        evidenceUrls = uploadResults.map(res => res.url);
+      }
 
-      // 2. Crear reporte de garantía
       await warrantyService.createWarranty({
         orderId,
-        description: `[${data.reason}] ${data.description}`,
+        reason: data.reason,
+        description: data.description,
         evidenceUrls,
       }, token);
 
       navigate('/warranties/success');
-    } catch (err) {
-      setError('Ocurrió un error al procesar tu solicitud. Por favor intenta de nuevo.');
-      console.error(err);
+    } catch (err: any) {
+      setError(err?.message || 'Ocurrió un error. Intenta de nuevo.');
     } finally {
       setIsSubmitting(false);
     }
@@ -106,102 +95,83 @@ const NewWarranty: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f0f0f0] py-12 px-6">
-      <div className="max-w-2xl mx-auto bg-white border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] p-8">
-        <h1 className="text-4xl font-black mb-8 uppercase italic tracking-tighter">
-          Reportar Garantía
-        </h1>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Motivo */}
-          <div>
-            <label className="block text-xl font-black uppercase mb-2">Motivo del reclamo</label>
-            <select
-              {...register('reason')}
-              className="w-full border-4 border-black p-3 font-bold focus:ring-4 focus:ring-yellow-400 outline-none"
-            >
-              <option value="">Selecciona un motivo</option>
-              {REASONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-            {errors.reason && (
-              <p className="text-red-600 font-bold mt-1 text-sm">{errors.reason.message}</p>
-            )}
+      <div className="page-container" style={{ maxWidth: 640 }}>
+        <div className="card" style={{ padding: '2.5rem' }}>
+          <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '2px solid var(--border)' }}>
+            <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Reportar Garantía</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Completa el formulario para procesar tu reclamo.</p>
           </div>
 
-          {/* Descripción */}
-          <div>
-            <label className="block text-xl font-black uppercase mb-2">Descripción del problema</label>
-            <textarea
-              {...register('description')}
-              rows={4}
-              placeholder="Explica detalladamente qué sucede con el producto..."
-              className="w-full border-4 border-black p-3 font-bold focus:ring-4 focus:ring-yellow-400 outline-none resize-none"
-            />
-            {errors.description && (
-              <p className="text-red-600 font-bold mt-1 text-sm">{errors.description.message}</p>
-            )}
-          </div>
-
-          {/* Evidencias */}
-          <div>
-            <label className="block text-xl font-black uppercase mb-2">Evidencias (Fotos/Video)</label>
-            <div className="border-4 border-dashed border-black p-6 flex flex-col items-center">
-              <input
-                type="file"
-                multiple
-                accept="image/*,video/*"
-                onChange={handleFileChange}
-                className="hidden"
-                id="evidence-upload"
-              />
-              <label
-                htmlFor="evidence-upload"
-                className="cursor-pointer bg-yellow-400 text-black font-black py-2 px-6 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
-              >
-                SELECCIONAR ARCHIVOS
-              </label>
-            </div>
-
-            {/* Previews */}
-            {previews.length > 0 && (
-              <div className="mt-6 grid grid-cols-3 gap-4">
-                {previews.map((src, index) => (
-                  <div key={index} className="relative aspect-square border-4 border-black">
-                    <img src={src} className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeFile(index)}
-                      className="absolute -top-3 -right-3 bg-red-600 text-white w-8 h-8 rounded-full border-2 border-black flex items-center justify-center font-black"
-                    >
-                      X
-                    </button>
-                  </div>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="input-group">
+              <label className="input-group label">Motivo del reclamo</label>
+              <select {...register('reason')} className="input">
+                <option value="">Selecciona un motivo</option>
+                {REASONS.map(r => (
+                  <option key={r} value={r}>{r}</option>
                 ))}
-              </div>
-            )}
-          </div>
-
-          {error && (
-            <div className="bg-red-100 border-2 border-red-600 p-4 font-bold text-red-600">
-              {error}
+              </select>
+              {errors.reason && <p style={{ color: 'var(--error)', fontSize: '0.85rem', marginTop: '4px' }}>{errors.reason.message}</p>}
             </div>
-          )}
 
-          <div className="pt-6">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`w-full font-black py-4 px-8 text-2xl uppercase italic border-4 border-black transition-all ${
-                isSubmitting 
-                ? 'bg-gray-300 cursor-not-allowed' 
-                : 'bg-black text-white hover:bg-white hover:text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:shadow-none'
-              }`}
-            >
-              {isSubmitting ? 'Enviando Ticket...' : 'Enviar Ticket de Garantía'}
-            </button>
-          </div>
-        </form>
+            <div className="input-group">
+              <label className="input-group label">Descripción del problema</label>
+              <textarea
+                {...register('description')}
+                rows={4}
+                placeholder="Describe detalladamente qué sucede con el producto..."
+                className="input"
+              />
+              {errors.description && <p style={{ color: 'var(--error)', fontSize: '0.85rem', marginTop: '4px' }}>{errors.description.message}</p>}
+            </div>
+
+            <div className="input-group">
+              <label className="input-group label">Evidencias (Opcional)</label>
+              <div style={{ border: '2px dashed var(--border)', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  id="evidence-upload"
+                />
+                <label htmlFor="evidence-upload" className="btn-secondary" style={{ cursor: 'pointer' }}>
+                  Seleccionar archivos
+                </label>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Imágenes o videos del problema</p>
+              </div>
+
+              {previews.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+                  {previews.map((src, index) => (
+                    <div key={index} style={{ position: 'relative', aspectRatio: '1', border: '2px solid var(--border)', overflow: 'hidden' }}>
+                      <img src={src} alt={`Evidencia ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        style={{ position: 'absolute', top: -8, right: -8, width: 24, height: 24, borderRadius: '50%', background: 'var(--error)', color: 'white', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {error && <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>{error}</div>}
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ flex: 1 }}>
+                {isSubmitting ? 'Enviando...' : 'Enviar Ticket'}
+              </button>
+              <button type="button" onClick={() => navigate('/orders')} className="btn-ghost">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
