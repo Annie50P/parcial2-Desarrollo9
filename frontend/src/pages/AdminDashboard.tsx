@@ -199,7 +199,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {activeTab === 'products' && <ProductTable token="" />}
+            {activeTab === 'products' && <ProductTable />}
           </div>
         </div>
       </main>

@@ -8,7 +8,7 @@ import ProductModal from './ProductModal';
 import type { CreateProductDTO } from '../services/products.service';
 
 interface ProductTableProps {
-  token: string;
+  token?: string;
 }
 
 const CONDITION_BADGES: Record<string, string> = {
@@ -17,7 +17,7 @@ const CONDITION_BADGES: Record<string, string> = {
   C: 'badge-neutral',
 };
 
-export default function ProductTable({ token }: ProductTableProps) {
+export default function ProductTable({ token: _token }: ProductTableProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,18 +33,29 @@ export default function ProductTable({ token }: ProductTableProps) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: CreateProductDTO) => productsService.create(data, token),
+    mutationFn: async (data: CreateProductDTO) => {
+      const t = await getToken();
+      if (!t) throw new Error('No token');
+      return productsService.create(data, t);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-products'] }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateProductDTO }) =>
-      productsService.update(id, data, token),
+    mutationFn: async ({ id, data }: { id: string; data: UpdateProductDTO }) => {
+      const t = await getToken();
+      if (!t) throw new Error('No token');
+      return productsService.update(id, data, t);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-products'] }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => productsService.delete(id, token),
+    mutationFn: async (id: string) => {
+      const t = await getToken();
+      if (!t) throw new Error('No token');
+      return productsService.delete(id, t);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-products'] }),
   });
 
