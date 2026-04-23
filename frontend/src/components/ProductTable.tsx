@@ -7,17 +7,13 @@ import { productsService } from '../services/products.service';
 import ProductModal from './ProductModal';
 import type { CreateProductDTO } from '../services/products.service';
 
-interface ProductTableProps {
-  token?: string;
-}
-
 const CONDITION_BADGES: Record<string, string> = {
   A: 'badge-success',
   B: 'badge-warning',
   C: 'badge-neutral',
 };
 
-export default function ProductTable({ token: _token }: ProductTableProps) {
+export default function ProductTable() {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
