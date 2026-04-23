@@ -131,7 +131,7 @@ export default function AdminDashboard() {
                   return (
                     <tr key={order._id}>
                       <td>{formatDate(order.createdAt)}</td>
-                      <td>{order.userId || '-'}</td>
+                      <td>{(order as any).userDoc?.email || order.userId || '-'}</td>
                       <td style={{ fontWeight: 700 }}>${order.total_amount?.toFixed(2)}</td>
                       <td>
                         <span className={`badge ${STATUS_COLORS[order.status] || 'badge-neutral'}`}>

@@ -69,7 +69,7 @@ export const getAllOrders = async (c: Context) => {
   try {
     const ordersData = await Order.find()
       .sort({ createdAt: -1 })
-      .populate('userId', 'email')
+      .populate('userDoc', 'email')
       .lean();
 
     const orderIds = ordersData.map(o => o._id);

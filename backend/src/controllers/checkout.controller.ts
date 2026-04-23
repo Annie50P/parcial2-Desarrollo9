@@ -93,9 +93,21 @@ export const checkoutSessionController = async (c: Context) => {
     let localUser = await import('../models/User').then(m => m.User.findOne({ clerk_id: userId }));
     
     if (!localUser) {
+      let realEmail = `${userId}@clerk-auth.local`;
+      try {
+        const { createClerkClient } = await import('@clerk/backend');
+        const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+        const clerkUser = await clerk.users.getUser(userId);
+        if (clerkUser.emailAddresses && clerkUser.emailAddresses.length > 0) {
+          realEmail = clerkUser.emailAddresses[0].emailAddress;
+        }
+      } catch (err) {
+        console.error('Error fetching real email from Clerk during checkout:', err);
+      }
+
       localUser = await import('../models/User').then(m => m.User.create({
         clerk_id: userId,
-        email: `${userId}@clerk-auth.local`,
+        email: realEmail,
         role: 'user'
       }));
     }
