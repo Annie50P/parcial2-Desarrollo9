@@ -5,9 +5,15 @@ import { Order } from '../models/Order';
 import { OrderItem } from '../models/OrderItem';
 import { Types } from 'mongoose';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-04-10',
-});
+const getStripeClient = () => {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured in backend environment');
+  }
+
+  return new Stripe(stripeSecretKey);
+};
 
 export const checkoutSessionController = async (c: Context) => {
   
@@ -36,6 +42,11 @@ export const checkoutSessionController = async (c: Context) => {
     }
    
    
+    const invalidId = cartItems.find(item => !Types.ObjectId.isValid(item.productId));
+    if (invalidId) {
+      return c.json({ error: `Invalid productId format: ${invalidId.productId}` }, 400);
+    }
+
     const productIds = cartItems.map(item => new Types.ObjectId(item.productId));
     
     const dbProducts = await Product.find({ _id: { $in: productIds } });
@@ -45,7 +56,8 @@ export const checkoutSessionController = async (c: Context) => {
     }
     
     let totalAmount = 0;
-    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    type StripeSessionParams = Parameters<Stripe['checkout']['sessions']['create']>[0];
+    const line_items: NonNullable<NonNullable<StripeSessionParams>['line_items']> = [];
     const validItems = [];
     
     for (const item of cartItems) {
@@ -62,12 +74,15 @@ export const checkoutSessionController = async (c: Context) => {
       totalAmount += dbProduct.price * item.quantity;
       validItems.push({ product: dbProduct, quantity: item.quantity });
       
+      const firstImage = dbProduct.image_urls?.[0];
+      const stripeImages = firstImage && /^https?:\/\//i.test(firstImage) ? [firstImage] : [];
+
       line_items.push({
         price_data: {
           currency: 'usd',
           product_data: {
             name: dbProduct.name,
-            images: dbProduct.image_urls?.length ? [dbProduct.image_urls[0]] : [],
+            images: stripeImages,
           },
           unit_amount: Math.round(dbProduct.price * 100),
         },
@@ -85,6 +100,7 @@ export const checkoutSessionController = async (c: Context) => {
       }));
     }
 
+    const stripe = getStripeClient();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
@@ -117,8 +133,17 @@ export const checkoutSessionController = async (c: Context) => {
 
     return c.json({ session_url: session.url }, 200);
 
-  } catch (error) {
-    console.error('[Checkout] Error:', error);
+  } catch (error: any) {
+    console.error('[Checkout] Error:', error?.message || error, error?.stack || '');
+
+    if (error?.message?.includes('STRIPE_SECRET_KEY')) {
+      return c.json({ error: 'Stripe is not configured on server. Missing STRIPE_SECRET_KEY.' }, 500);
+    }
+
+    if (error?.type?.startsWith('Stripe')) {
+      return c.json({ error: `Stripe checkout error: ${error.message}` }, 502);
+    }
+
     return c.json({ error: 'Internal server error processing checkout' }, 500);
   }
 };

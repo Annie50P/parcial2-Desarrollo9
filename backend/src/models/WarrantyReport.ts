@@ -5,7 +5,7 @@ export interface IWarrantyReport extends Document {
   userId: string;
   description: string;
   evidenceUrls: string[];
-  status: 'pending' | 'review' | 'resolved' | 'rejected';
+  status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
   repairNotes?: string;
   createdAt: Date;
 }
@@ -17,11 +17,23 @@ const WarrantyReportSchema = new Schema<IWarrantyReport>({
   evidenceUrls: [{ type: String }],
   status: { 
     type: String, 
-    enum: ['pending', 'review', 'resolved', 'rejected'], 
+    enum: ['pending', 'review', 'resolved', 'rejected', 'refunded'], 
     default: 'pending' 
   },
   repairNotes: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
+
+// Relación virtual con el usuario a través de clerk_id
+WarrantyReportSchema.virtual('userDoc', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: 'clerk_id',
+  justOne: true
+});
+
+// Asegurar que los virtuales se incluyan en la serialización a JSON
+WarrantyReportSchema.set('toJSON', { virtuals: true });
+WarrantyReportSchema.set('toObject', { virtuals: true });
 
 export const WarrantyReport = model<IWarrantyReport>('WarrantyReport', WarrantyReportSchema);

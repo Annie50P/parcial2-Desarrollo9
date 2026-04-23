@@ -177,6 +177,20 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 - Se mantuvo la estética "brutalist premium" con sombras marcadas y colores vibrantes.
 - El botón de garantía se inhabilita automáticamente si la orden supera los 90 días de antigüedad.
 
+## ✅ [Issue 78] Dashboard Administrativo de Garantías (Backend/Frontend)
+**Sprint:** 3 | **Estado:** Completado 
+
+### 📂 Archivos Creados/Modificados
+- *[backend/src/middlewares/auth.middleware.ts]*: Se agregó el middleware `adminAuthMiddleware` para restringir el acceso validando los claims de Clerk y rol de organización.
+- *[backend/src/models/WarrantyReport.ts]*: Se extendió el Enum status con `refunded` y se vinculó `clerk_id` mediante Schema Virtual options para usar populate().
+- *[backend/src/validators/warranty.validator.ts]*: Integración en Zod de `updateStatusSchema` para la comprobación del nuevo status modificado.
+- *[backend/src/controllers/warranty.controller.ts]*: `getAllWarranties` y refactoring de update.
+- *[frontend/src/pages/AdminDashboard.tsx]*: Dashboard de Datatable en crudo usando React Query y protección nativa de vista Clerk.
+- *[frontend/src/services/warranty.service.ts]*: Configuración de token en Bearer headers en axios/fetch.
+
+### 💡 Contexto Importante
+- Sólo usuarios definidos como Admin en el Clerk Application portal pueden interactuar con los status, protegiendo totalmente la lógica de devoluciones (Fraudes).
+
 ## ⏳ Template para futuros issues (Copiar y pegar)
 <!--
 ## [Issue X] Nombre del Issue
@@ -258,3 +272,16 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 ### ?? Contexto Importante
 - Validaciones estricas protegen MongoDB frente datos fakes del cliente y previenen stock en negativo con Http 400 Bad Request.
 - El checkout crea un User fallback en BD si no se hallaba previo via Clerk.
+
+---
+
+## [Fix] Checkout 500 con mensaje generico (Backend/Frontend)
+**Sprint:** 2 | **Estado:** Completado
+
+### Archivos Creados/Modificados
+- [backend/src/controllers/checkout.controller.ts]: Se robustecio el flujo para evitar 500 opacos. Ahora valida formato de ObjectId antes de crear `Types.ObjectId`, inicializa Stripe de forma segura (fallando con mensaje claro si falta `STRIPE_SECRET_KEY`), filtra imagenes no URL para Stripe y devuelve errores mas explicitos para fallos de Stripe.
+- [frontend/src/services/checkout.service.ts]: Se mejoro el parseo de errores HTTP no exitosos para soportar respuestas no JSON y propagar mejor el mensaje real del backend.
+
+### Contexto Importante
+- Variable requerida en backend: `STRIPE_SECRET_KEY`.
+- Si Stripe devuelve error de configuracion o payload, ahora el frontend mostrara un mensaje especifico en lugar del genrico `Internal server error processing checkout`.

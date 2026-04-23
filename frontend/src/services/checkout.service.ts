@@ -1,5 +1,3 @@
-import type { CartItem } from '../types/cart';
-
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 export const checkoutService = {
@@ -18,7 +16,15 @@ export const checkoutService = {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData: any = null;
+      const rawError = await response.text();
+
+      try {
+        errorData = rawError ? JSON.parse(rawError) : null;
+      } catch {
+        errorData = { error: rawError };
+      }
+
       console.error('[Checkout Error Full]:', errorData);
       console.error('[Checkout Error Stringified]:', JSON.stringify(errorData));
       
@@ -29,6 +35,8 @@ export const checkoutService = {
         errorMsg = errorData.error.join(', ');
       } else if (errorData.error) {
         errorMsg = JSON.stringify(errorData.error);
+      } else if (rawError) {
+        errorMsg = rawError;
       }
       
       throw new Error(errorMsg);

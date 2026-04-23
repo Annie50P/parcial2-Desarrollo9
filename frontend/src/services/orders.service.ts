@@ -11,5 +11,21 @@ export const ordersService = {
       }
     });
     return response.data;
+  },
+  getOrderBySession: async (sessionId: string, token: string): Promise<Order> => {
+    const response = await axios.get(`${API_URL}/orders/by-session/${sessionId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
+  },
+  getAllOrders: async (token: string): Promise<Order[]> => {
+    const response = await axios.get(`${API_URL}/orders`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
   }
 };

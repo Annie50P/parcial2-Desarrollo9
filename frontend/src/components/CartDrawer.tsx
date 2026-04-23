@@ -22,7 +22,7 @@ export function CartDrawer() {
       if (!token) throw new Error("No hay token de autenticación");
       
       const payload = items.map(i => ({ 
-        productId: i._id || i.id, 
+        productId: i._id, 
         quantity: i.quantity 
       }));
       

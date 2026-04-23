@@ -5,10 +5,14 @@ import { Order } from '../models/Order';
 export const createWarrantyReport = async (c: Context) => {
   try {
     const userId = c.get('userId');
-    const { orderId, description, evidenceUrls } = await c.req.json();
+    const { orderId, reason, description, evidenceUrls } = await c.req.json();
 
     if (!userId) {
       return c.json({ error: 'Unauthorized: User ID not found in context' }, 401);
+    }
+
+    if (!orderId || !reason || !description) {
+      return c.json({ error: 'Missing required fields: orderId, reason, description' }, 400);
     }
 
     // 1. Buscar la orden
@@ -31,22 +35,24 @@ export const createWarrantyReport = async (c: Context) => {
       return c.json({ error: 'Garantía Expirada. Plazo Legal agotado' }, 400);
     }
 
-    // 4. Crear el reporte
+    // 4. Crear el reporte con reason como parte de description
+    const fullDescription = `[${reason}] ${description}`;
     const report = new WarrantyReport({
       orderId,
       userId,
-      description,
+      description: fullDescription,
       evidenceUrls: evidenceUrls || [],
       status: 'pending'
     });
 
     await report.save();
-    
-    return c.json({ 
-      ticketId: report._id, 
-      status: report.status 
+
+    return c.json({
+      ticketId: report._id,
+      status: report.status
     }, 201);
   } catch (error: any) {
+    console.error('[Warranty Error]:', error);
     return c.json({ error: error.message }, 400);
   }
 };
@@ -55,6 +61,19 @@ export const getMyWarranties = async (c: Context) => {
   try {
     const userId = c.get('userId');
     const reports = await WarrantyReport.find({ userId }).populate('orderId');
+    return c.json(reports);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+};
+
+export const getAllWarranties = async (c: Context) => {
+  try {
+    // Busca todos y populea userDoc (virtual field del clerk_id) y orderId
+    const reports = await WarrantyReport.find({})
+      .populate('userDoc', 'email role')
+      .populate('orderId')
+      .exec();
     return c.json(reports);
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
