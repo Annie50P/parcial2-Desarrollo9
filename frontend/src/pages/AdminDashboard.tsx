@@ -6,6 +6,7 @@ import type { IWarranty } from '../types/warranty';
 import type { Order } from '../types/order';
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
+import StatsCards from '../components/StatsCards';
 
 type TabType = 'orders' | 'warranties' | 'products';
 
@@ -69,9 +70,6 @@ export default function AdminDashboard() {
     );
   }
 
-  const pendingCount = warranties?.filter(w => w.status === 'pending').length || 0;
-  const paidCount = orders?.filter(o => o.status === 'paid').length || 0;
-
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <AdminSidebar activeSection={activeTab} onNavigate={(section) => setActiveTab(section as TabType)} />
@@ -83,24 +81,7 @@ export default function AdminDashboard() {
               <p>Gestiona órdenes y garantías de clientes</p>
             </div>
 
-            <div className="admin-stats-row">
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Total Órdenes</span>
-                <span className="admin-stat-value">{orders?.length || 0}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Órdenes Pagadas</span>
-                <span className="admin-stat-value">{paidCount}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Tickets Abiertos</span>
-                <span className="admin-stat-value">{pendingCount}</span>
-              </div>
-              <div className="admin-stat-card">
-                <span className="admin-stat-label">Total Garantías</span>
-                <span className="admin-stat-value">{warranties?.length || 0}</span>
-              </div>
-            </div>
+            <StatsCards orders={orders} warranties={warranties} />
 
             <div className="admin-tabs">
               <button

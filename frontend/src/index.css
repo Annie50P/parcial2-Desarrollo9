@@ -1217,6 +1217,239 @@ code {
   outline: none;
 }
 
+/* Stats Cards */
+.stats-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: var(--transition);
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.stat-card-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.stat-card-accent .stat-card-icon {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.stat-card-success .stat-card-icon {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.stat-card-warning .stat-card-icon {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.stat-card-error .stat-card-icon {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.stat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-card-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+}
+
+.stat-card-value {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+/* Admin Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.admin-tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.admin-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-muted);
+}
+
+.admin-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.admin-page {
+  padding: 2rem 0;
+}
+
+.page-container {
+  max-width: 1400px;
+}
+
+.admin-header {
+  margin-bottom: 2rem;
+}
+
+.admin-header h1 {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.admin-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* Admin Table */
+.admin-table-wrapper {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  overflow: hidden;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border-bottom: 2px solid var(--border);
+}
+
+.admin-table td {
+  padding: 14px 16px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: var(--bg-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius-sm);
+}
+
+.badge-success {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.badge-error {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.badge-info {
+  background: var(--info-light);
+  color: var(--info);
+}
+
+.badge-neutral {
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.admin-table .actions {
+  text-align: right;
+}
+
+.admin-select {
+  padding: 8px 12px;
+  border: 2px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.admin-select:hover,
+.admin-select:focus {
+  border-color: var(--text-primary);
+  outline: none;
+}
+
 .admin-stats-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
