@@ -4,12 +4,14 @@ import { Link } from "react-router-dom";
 import { CartIcon } from "./CartIcon";
 import { CartDrawer } from "./CartDrawer";
 import { useCartStore } from "../store/cart.store";
+import { useAdminCheck } from "./AdminRoute";
 
 const CART_USER_KEY = 'safetech-cart-user';
 
 export default function Header() {
   const { userId } = useAuth();
   const clearCart = useCartStore(state => state.clearCart);
+  const { isAdmin } = useAdminCheck();
 
   useEffect(() => {
     const storedUserId = localStorage.getItem(CART_USER_KEY);
@@ -29,9 +31,11 @@ export default function Header() {
         <CartIcon />
 
         <SignedIn>
-          <Link to="/orders" className="nav-link">
-            Mis Pedidos
-          </Link>
+          {!isAdmin && (
+            <Link to="/orders" className="nav-link">
+              Mis Pedidos
+            </Link>
+          )}
         </SignedIn>
 
         <SignedOut>
