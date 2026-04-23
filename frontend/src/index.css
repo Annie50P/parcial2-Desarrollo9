@@ -1361,6 +1361,8 @@ code {
   background: var(--bg-secondary);
   border: 2px solid var(--border);
   overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-table {
@@ -1370,28 +1372,42 @@ code {
 
 .admin-table th {
   text-align: left;
-  padding: 14px 16px;
+  padding: 16px 20px;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: var(--text-muted);
-  background: var(--bg-muted);
+  background: var(--bg-secondary);
   border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
 }
 
 .admin-table td {
-  padding: 14px 16px;
+  padding: 16px 20px;
   font-size: 0.9rem;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
-.admin-table tr:last-child td {
+.admin-table tbody tr {
+  transition: var(--transition);
+}
+
+.admin-table tbody tr:hover {
+  background: var(--bg-muted);
+}
+
+.admin-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.admin-table tr:hover td {
+.admin-table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.admin-table tbody tr:nth-child(even):hover {
   background: var(--bg-muted);
 }
 
@@ -1432,22 +1448,28 @@ code {
 
 .admin-table .actions {
   text-align: right;
+  width: 180px;
 }
 
 .admin-select {
   padding: 8px 12px;
   border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
   font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   background: var(--bg-secondary);
   cursor: pointer;
   transition: var(--transition);
+  min-width: 140px;
 }
-.admin-select:hover,
+.admin-select:hover {
+  border-color: var(--accent);
+}
 .admin-select:focus {
-  border-color: var(--text-primary);
+  border-color: var(--accent);
   outline: none;
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .admin-stats-row {
