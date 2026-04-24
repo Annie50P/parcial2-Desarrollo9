@@ -7,6 +7,8 @@ export interface IWarrantyReport extends Document {
   evidenceUrls: string[];
   status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
   repairNotes?: string;
+  technicianId?: string;
+  technicianName?: string;
   createdAt: Date;
 }
 
@@ -21,6 +23,8 @@ const WarrantyReportSchema = new Schema<IWarrantyReport>({
     default: 'pending' 
   },
   repairNotes: { type: String },
+  technicianId: { type: String },
+  technicianName: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 

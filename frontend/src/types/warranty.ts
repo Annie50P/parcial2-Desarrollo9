@@ -8,6 +8,8 @@ export interface IWarranty {
   evidenceUrls: string[];
   status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
   repairNotes?: string;
+  technicianId?: string;
+  technicianName?: string;
   createdAt: string;
 }
 

@@ -52,6 +52,13 @@ export default function StatsCards({ orders, warranties }: StatsCardsProps) {
       color: 'accent'
     },
     {
+      id: 'paid-orders',
+      label: 'Órdenes Pagadas',
+      value: paidCount,
+      icon: <PaidOrdersIcon />,
+      color: 'success'
+    },
+    {
       id: 'revenue',
       label: 'Ingresos Totales',
       value: `$${totalRevenue.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`,

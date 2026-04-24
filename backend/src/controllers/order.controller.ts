@@ -93,3 +93,32 @@ export const getAllOrders = async (c: Context) => {
     return c.json({ error: 'Failed to fetch orders' }, 500);
   }
 };
+
+export const confirmOrderPayment = async (c: Context) => {
+  try {
+    const sessionId = c.req.param('sessionId');
+    const userId = c.get('userId');
+
+    if (!userId) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const order = await Order.findOne({ stripe_session_id: sessionId, userId });
+
+    if (!order) {
+      return c.json({ error: 'Order not found' }, 404);
+    }
+
+    if (order.status === 'paid') {
+      return c.json({ message: 'Order already paid' }, 200);
+    }
+
+    order.status = 'paid';
+    await order.save();
+
+    return c.json({ message: 'Payment confirmed', order });
+  } catch (error) {
+    console.error('Error confirming payment:', error);
+    return c.json({ error: 'Failed to confirm payment' }, 500);
+  }
+};

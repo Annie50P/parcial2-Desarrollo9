@@ -10,6 +10,7 @@ import warrantyRoutes from './routes/warranty.routes';
 import webhookRoutes from './routes/webhook.routes';
 import orderRoutes from './routes/order.routes';
 import authRoutes from './routes/auth.routes';
+import technicianRoutes from './routes/technician.routes';
 
 console.log('[DEBUG] CLERK_SECRET_KEY:', process.env.CLERK_SECRET_KEY);
 
@@ -30,6 +31,7 @@ app.route('/api/warranties', warrantyRoutes);
 app.route('/api/webhooks', webhookRoutes);
 app.route('/api/orders', orderRoutes);
 app.route('/api/auth', authRoutes);
+app.route('/api/technicians', technicianRoutes);
 
 export default {
   port: process.env.PORT || 3000,

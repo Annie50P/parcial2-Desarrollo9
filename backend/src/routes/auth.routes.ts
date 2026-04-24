@@ -9,17 +9,35 @@ authRoutes.get('/me', clerkAuthMiddleware, async (c) => {
   const userId = c.get('userId');
 
   try {
-    const userDoc = await User.findOne({ clerk_id: userId });
+    let userDoc = await User.findOne({ clerk_id: userId });
 
     let role = userDoc?.role as string | undefined;
 
-    if (!role) {
+    // If user doesn't exist in MongoDB, create them
+    if (!userDoc) {
       try {
         const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
         const clerkUser = await clerk.users.getUser(userId).catch(() => null);
-        role = clerkUser?.publicMetadata?.role as string | undefined;
-      } catch {
-        role = undefined;
+        
+        const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
+        const publicMetadata = clerkUser?.publicMetadata as any;
+        
+        console.log('[Auth] Clerk user data:', JSON.stringify(clerkUser, null, 2));
+        console.log('[Auth] Public metadata:', JSON.stringify(publicMetadata, null, 2));
+        
+        role = publicMetadata?.role as string | undefined || 'user';
+
+        if (email) {
+          await User.create({
+            clerk_id: userId,
+            email: email,
+            role: role
+          });
+          console.log(`[Auth] Created user ${email} with role: ${role}`);
+        }
+      } catch (err) {
+        console.error('[Auth] Error creating user:', err);
+        role = 'user';
       }
     }
 

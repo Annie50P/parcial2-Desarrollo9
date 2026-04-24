@@ -31,6 +31,9 @@ export default function Success() {
       try {
         const token = await getToken();
         if (!token) throw new Error('Unauthenticated');
+        
+        await ordersService.confirmPayment(sessionId, token);
+        
         const orderData = await ordersService.getOrderBySession(sessionId, token);
         setOrder(orderData);
       } catch (err: any) {

@@ -2,14 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { warrantyService } from '../services/warranty.service';
 import { ordersService } from '../services/orders.service';
+import { technicianService } from '../services/technician.service';
 import type { IWarranty } from '../types/warranty';
 import type { Order } from '../types/order';
+import type { Technician } from '../types/technician';
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import StatsCards from '../components/StatsCards';
 import ProductTable from '../components/ProductTable';
 
-type TabType = 'orders' | 'warranties' | 'products';
+type TabType = 'orders' | 'warranties' | 'products' | 'technicians';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'badge-warning',
@@ -58,13 +60,45 @@ export default function AdminDashboard() {
     }
   });
 
+  const { data: technicians, isLoading: techniciansLoading } = useQuery<Technician[]>({
+    queryKey: ['technicians'],
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return technicianService.getTechnicians(token);
+    },
+    enabled: isLoaded,
+  });
+
+  const assignTechMutation = useMutation({
+    mutationFn: async ({ id, technicianId, technicianName }: { id: string; technicianId: string; technicianName: string }) => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return warrantyService.assignTechnician(id, technicianId, technicianName, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-warranties'] });
+    }
+  });
+
+  const technicianMutation = useMutation({
+    mutationFn: async (data: { name: string; email: string; phone?: string }) => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return technicianService.createTechnician(data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['technicians'] });
+    }
+  });
+
   const formatDate = (dateStr: string | Date) => {
     return new Date(dateStr).toLocaleDateString('es-ES', {
       day: '2-digit', month: 'short', year: 'numeric'
     });
   };
 
-  if (!isLoaded || ordersLoading || warrantiesLoading) {
+  if (!isLoaded || ordersLoading || warrantiesLoading || techniciansLoading) {
     return (
       <div className="min-h-screen bg-[#f0f0f0] flex items-center justify-center">
         <div className="loading animate-pulse">Cargando dashboard...</div>
@@ -143,6 +177,12 @@ export default function AdminDashboard() {
               >
                 Productos
               </button>
+              <button
+                onClick={() => setActiveTab('technicians')}
+                className={`admin-tab ${activeTab === 'technicians' ? 'active' : ''}`}
+              >
+                Técnicos
+              </button>
             </div>
 
             {activeTab === 'orders' && (
@@ -206,12 +246,30 @@ export default function AdminDashboard() {
                         <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={w.description}>
                           {w.description}
                         </td>
+                        <td>{w.technicianName || '-'}</td>
                         <td>
                           <span className={`badge ${STATUS_COLORS[w.status] || 'badge-neutral'}`}>
                             {w.status}
                           </span>
                         </td>
                         <td className="actions">
+                          <select
+                            className="admin-select"
+                            value={w.technicianId || ''}
+                            onChange={(e) => {
+                              const techId = e.target.value;
+                              const tech = technicians?.find(t => t._id === techId);
+                              if (techId && tech) {
+                                assignTechMutation.mutate({ id: w._id, technicianId: tech._id, technicianName: tech.name });
+                              }
+                            }}
+                            disabled={assignTechMutation.isPending}
+                          >
+                            <option value="">Asignar técnico...</option>
+                            {(technicians || []).map((tech) => (
+                              <option key={tech._id} value={tech._id}>{tech.name}</option>
+                            ))}
+                          </select>
                           <select
                             className="admin-select"
                             value={w.status}
@@ -240,6 +298,91 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'products' && <ProductTable />}
+
+            {activeTab === 'technicians' && (
+              <div style={{ padding: '1rem' }}>
+                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Nombre</label>
+                    <input
+                      id="techName"
+                      type="text"
+                      className="input"
+                      placeholder="Nombre del técnico"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Email</label>
+                    <input
+                      id="techEmail"
+                      type="email"
+                      className="input"
+                      placeholder="email@ejemplo.com"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Teléfono</label>
+                    <input
+                      id="techPhone"
+                      type="text"
+                      className="input"
+                      placeholder="+507 0000-0000"
+                    />
+                  </div>
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      const name = (document.getElementById('techName') as HTMLInputElement).value;
+                      const email = (document.getElementById('techEmail') as HTMLInputElement).value;
+                      const phone = (document.getElementById('techPhone') as HTMLInputElement).value;
+                      if (name && email) {
+                        technicianMutation.mutate({ name, email, phone });
+                        (document.getElementById('techName') as HTMLInputElement).value = '';
+                        (document.getElementById('techEmail') as HTMLInputElement).value = '';
+                        (document.getElementById('techPhone') as HTMLInputElement).value = '';
+                      }
+                    }}
+                    disabled={technicianMutation.isPending}
+                  >
+                    {technicianMutation.isPending ? 'Agregando...' : 'Agregar Técnico'}
+                  </button>
+                </div>
+
+                <div className="admin-table-wrapper">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(technicians || []).map((tech) => (
+                        <tr key={tech._id}>
+                          <td>{tech.name}</td>
+                          <td>{tech.email}</td>
+                          <td>{tech.phone || '-'}</td>
+                          <td>
+                            <span className="badge badge-success">
+                              {tech.active ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {(!technicians || technicians.length === 0) && (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                            No hay técnicos registrados.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
