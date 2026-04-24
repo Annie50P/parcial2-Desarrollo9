@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createWarrantyReport, getMyWarranties, updateWarrantyStatus, getAllWarranties } from '../controllers/warranty.controller';
+import { createWarrantyReport, getMyWarranties, updateWarrantyStatus, getAllWarranties, assignTechnician } from '../controllers/warranty.controller';
 import { clerkAuthMiddleware, adminAuthMiddleware } from '../middlewares/auth.middleware';
 import { zValidator } from '@hono/zod-validator';
 import { createWarrantySchema, updateStatusSchema } from '../validators/warranty.validator';
@@ -13,5 +13,6 @@ warrantyRoutes.get('/mine', clerkAuthMiddleware, getMyWarranties);
 // Rutas de Administrador
 warrantyRoutes.get('/', adminAuthMiddleware, getAllWarranties);
 warrantyRoutes.put('/:id/status', adminAuthMiddleware, zValidator('json', updateStatusSchema), updateWarrantyStatus);
+warrantyRoutes.put('/:id/assign', adminAuthMiddleware, assignTechnician);
 
 export default warrantyRoutes;

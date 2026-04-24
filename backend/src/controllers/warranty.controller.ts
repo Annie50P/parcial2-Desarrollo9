@@ -97,3 +97,29 @@ export const updateWarrantyStatus = async (c: Context) => {
     return c.json({ error: error.message }, 400);
   }
 };
+
+export const assignTechnician = async (c: Context) => {
+  try {
+    const { id } = c.req.param();
+    const { technicianId, technicianName } = await c.req.json();
+    
+    if (!technicianId || !technicianName) {
+      return c.json({ error: 'Missing technicianId or technicianName' }, 400);
+    }
+
+    const report = await WarrantyReport.findByIdAndUpdate(
+      id,
+      { 
+        technicianId, 
+        technicianName,
+        status: 'review'
+      },
+      { new: true }
+    );
+
+    if (!report) return c.json({ error: 'Report not found' }, 404);
+    return c.json(report);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 400);
+  }
+};

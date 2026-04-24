@@ -27,5 +27,13 @@ export const ordersService = {
       }
     });
     return response.data;
+  },
+  confirmPayment: async (sessionId: string, token: string): Promise<Order> => {
+    const response = await axios.post(`${API_URL}/orders/confirm/${sessionId}`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
   }
 };

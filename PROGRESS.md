@@ -301,3 +301,39 @@ Se inicializó el proyecto frontend con React y Vite, integrando el SDK de Clerk
 
 ### 💡 Contexto Importante
 - Implementaciones enfocadas en la experiencia de usuario y resolución de bugs visuales y de datos en perfiles (`@clerk-auth.local`).
+
+---
+
+## ✅ [Issue 80] Dashboard Admin + CRUD Productos
+**Sprint:** 4 | **Estado:** Completado 
+
+### 📂 Commits Realizados (en orden)
+1. **feat: agregar sidebar de navegación al dashboard admin** - Crear AdminSidebar.tsx, estilos, integración en AdminDashboard
+2. **feat: crear componente StatsCards para métricas visuales del dashboard** - StatsCards.tsx con 4 tarjetas de métricas
+3. **feat: mejorar estilos de tablas existentes (Órdenes/Garantías)** - Filas alternadas, hover, headers sticky, select mejorado
+4. **feat: crear ProductModal.tsx y agregar CRUD de productos al dashboard** - ProductModal.tsx, ProductTable.tsx, productos.service.ts actualizado
+5. **feat: crear ProductTable.tsx como componente independiente** - Extraer lógica de productos a componente reutilizable
+6. **fix: obtener token internamente en ProductTable para mutaciones CRUD** - ProductTable ahora usa getToken() internamente
+7. **fix: remover prop token sin usar en ProductTable** - Limpieza de código
+8. **feat: agregar responsive design al dashboard admin** - Media queries para tablet, móvil y pequeño
+
+### 📂 Archivos Creados/Modificados
+
+**Nuevos Archivos:**
+- `frontend/src/components/AdminSidebar.tsx`: Sidebar de navegación con Dashboard, Órdenes, Garantías, Productos. Soporte responsive con menú hamburguesa.
+- `frontend/src/components/StatsCards.tsx`: 4 tarjetas de métricas (Total Órdenes, Ingresos Totales, Tickets Abiertos, Total Garantías)
+- `frontend/src/components/ProductModal.tsx`: Modal de formulario para crear/editar productos con validación en cliente
+- `frontend/src/components/ProductTable.tsx`: Tabla independiente con CRUD completo de productos
+
+**Archivos Modificados:**
+- `frontend/src/pages/AdminDashboard.tsx`: Rediseño completo con layout sidebar + contenido, integración de StatsCards y ProductTable, responsive
+- `frontend/src/index.css`: Estilos para sidebar, stats-cards, tablas, modal, tabs, badges. Media queries para responsive design
+- `frontend/src/services/products.service.ts`: Métodos CRUD: getAll, create, update, delete
+- `frontend/src/components/AdminSidebar.tsx`: Agregado soporte para estado open/close en móvil
+
+### 💡 Contexto Importante
+- El token de autenticación se obtiene internamente en cada componente usando `useAuth()` de Clerk
+- El backend debe estar corriendo para que el CRUD funcione completamente
+- El sidebar usa `activeSection` para marcar la pestaña activa
+- Las mutaciones de create/update/delete obtienen el token internamente (fix de bug 401)
+- Responsive: sidebar oculto en móvil con menú hamburguesa, tablas scrollables horizontalmente

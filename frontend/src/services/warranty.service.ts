@@ -77,5 +77,19 @@ export const warrantyService = {
 
     if (!response.ok) throw new Error('Failed to update warranty status');
     return response.json();
+  },
+
+  async assignTechnician(id: string, technicianId: string, technicianName: string, token: string): Promise<IWarranty> {
+    const response = await fetch(`${API_URL}/warranties/${id}/assign`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ technicianId, technicianName }),
+    });
+
+    if (!response.ok) throw new Error('Failed to assign technician');
+    return response.json();
   }
 };

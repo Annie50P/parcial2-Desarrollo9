@@ -126,13 +126,17 @@ export const checkoutSessionController = async (c: Context) => {
     
    
     
-    const newOrder = await Order.create({
+const newOrder = await Order.create({
       userId: userId,
       total_amount: totalAmount,
       status: 'pending',
-      stripe_session_id: session.id
+      stripe_session_id: session.id,
+      items: validItems.map(item => ({
+        product: item.product._id,
+        quantity: item.quantity,
+        price: item.product.price
+      }))
     });
-
 
     for (const validItem of validItems) {
       await OrderItem.create({
