@@ -18,14 +18,14 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/home" element={<div className="page-main"><Home /></div>} />
+          <Route path="/login" element={<div className="page-main"><Login /></div>} />
           <Route path="/success" element={<Success />} />
           <Route
             path="/orders"
             element={
               <SignedIn>
-                <Orders />
+                <div className="page-main"><Orders /></div>
               </SignedIn>
             }
           />
@@ -33,7 +33,7 @@ function App() {
             path="/warranties/new"
             element={
               <SignedIn>
-                <NewWarranty />
+                <div className="page-main"><NewWarranty /></div>
               </SignedIn>
             }
           />
