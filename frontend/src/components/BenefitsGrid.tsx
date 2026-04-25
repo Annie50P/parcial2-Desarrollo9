@@ -201,11 +201,12 @@ export const BenefitsGrid: React.FC = () => {
             Nuestra promesa
           </p>
           <h2 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: 300,
-            letterSpacing: '-0.02em',
+            fontSize: 'clamp(1.75rem, 4.5vw, 2.75rem)',
+            fontWeight: 400,
+            fontStyle: 'italic',
+            letterSpacing: '-0.025em',
             color: 'var(--ink)',
-            lineHeight: 1.15,
+            lineHeight: 1.2,
             fontFamily: 'var(--font-display)',
           }}>
             ¿Por qué elegir SafeTech?
@@ -220,43 +221,6 @@ export const BenefitsGrid: React.FC = () => {
         }}>
           {benefits.map((b, i) => (
             <BenefitItem key={i} b={b} index={i} />
-          ))}
-        </div>
-
-        {/* Stats bar */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '4rem',
-          marginTop: '4rem',
-          paddingTop: '2rem',
-          borderTop: '1px solid var(--line)',
-        }}>
-          {[
-            { value: '5,000+', label: 'Dispositivos reacondicionados' },
-            { value: '12', label: 'Técnicos certificados' },
-            { value: '97%', label: 'Satisfacción' },
-          ].map((stat, i) => (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <p style={{
-                fontSize: 'clamp(1.25rem, 2vw, 1.5rem)',
-                fontWeight: 300,
-                color: 'var(--ink)',
-                fontFamily: 'var(--font-display)',
-                letterSpacing: '-0.02em',
-              }}>
-                {stat.value}
-              </p>
-              <p style={{
-                fontSize: '0.7rem',
-                fontWeight: 400,
-                color: 'var(--gray)',
-                marginTop: '0.25rem',
-                fontFamily: 'var(--font-sans)',
-              }}>
-                {stat.label}
-              </p>
-            </div>
           ))}
         </div>
 

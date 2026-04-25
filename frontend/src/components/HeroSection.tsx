@@ -262,7 +262,6 @@ export const HeroSection: React.FC = () => {
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '10px',
-            opacity: 0.5,
           }} className="hero-deco-grid">
             {[
               { label: 'iPhone', sub: 'Excellent' },
@@ -297,11 +296,52 @@ export const HeroSection: React.FC = () => {
             ))}
           </div>
 
+          {/* Phone 3D rotating */}
+          <div style={{
+            flex: '0 0 auto',
+            width: 140,
+            height: 280,
+            perspective: '600px',
+            marginLeft: '1rem',
+          }} className="hero-phone-container">
+            <div className="hero-phone">
+              <svg viewBox="0 0 90 180" fill="none" style={{ width: '100%', height: '100%' }}>
+                <rect x="2" y="2" width="86" height="176" rx="12" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" strokeWidth="1"/>
+                <rect x="6" y="12" width="78" height="156" rx="6" fill="#0a0a0a"/>
+                <rect x="10" y="16" width="70" height="148" rx="4" fill="#1a1a1a"/>
+                <circle cx="45" cy="172" r="6" fill="rgba(255,255,255,0.08)"/>
+                <rect x="38" y="6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+                <rect x="30" y="38" width="30" height="22" rx="2" fill="linear-gradient(135deg, #2a2a2a, #1a1a1a)"/>
+                <rect x="32" y="40" width="26" height="18" rx="1" fill="url(#phoneScreen)"/>
+                <defs>
+                  <linearGradient id="phoneScreen" x1="32" y1="40" x2="58" y2="58">
+                    <stop stopColor="#22c55e"/>
+                    <stop offset="1" stopColor="#16a34a"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <style>{`
-        @media (max-width: 900px) { .hero-deco-grid { display: none !important; } }
+        @media (max-width: 900px) { .hero-deco-grid, .hero-phone-container { display: none !important; } }
+        @keyframes rotate3d {
+          0% { transform: rotateY(0deg) rotateX(5deg); }
+          50% { transform: rotateY(180deg) rotateX(-5deg); }
+          100% { transform: rotateY(360deg) rotateX(5deg); }
+        }
+        .hero-phone-container:hover .hero-phone {
+          animation-play-state: paused;
+        }
+        .hero-phone {
+          width: 100%;
+          height: 100%;
+          animation: rotate3d 6s ease-in-out infinite;
+          transform-style: preserve-3d;
+        }
       `}</style>
     </section>
   );

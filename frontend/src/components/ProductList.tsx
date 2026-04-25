@@ -183,7 +183,7 @@ export const ProductList: React.FC = () => {
 };
 
 interface ProductCardProps {
-  product: { _id: string; name: string; price: number; description?: string; condition: string; stock: number; image_urls?: string[] };
+  product: { _id: string; name: string; price: number; description?: string; condition: string; category?: string; stock: number; image_urls?: string[] };
   onAdd: () => void;
 }
 
@@ -193,12 +193,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
 
   const badgeColor = product.condition === 'A' ? 'var(--ink)' : product.condition === 'B' ? '#D97706' : 'var(--line)';
   const badgeText = product.condition === 'A' ? 'var(--white)' : product.condition === 'B' ? 'var(--white)' : 'var(--ink2)';
+  
+  const categoryLabel = { celular: 'Celular', laptop: 'Laptop', pc: 'PC', auriculares: 'Audio', tablet: 'Tablet' }[product.category || ''] || product.category;
 
   return (
     <article
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ background: 'var(--white)', border: `1px solid ${hovered ? 'var(--ink)' : 'var(--line)'}`, transition: 'all 0.35s cubic-bezier(0.16,1,0.3,1)', transform: hovered ? 'translateY(-4px)' : 'translateY(0)', boxShadow: hovered ? '0 16px 40px rgba(0,0,0,0.08)' : 'none' }}
+      style={{ 
+        background: 'var(--white)', 
+        border: `1px solid ${hovered ? 'var(--ink)' : 'var(--line)'}`, 
+        transition: 'all 0.35s cubic-bezier(0.16,1,0.3,1)', 
+        transform: hovered ? 'translateY(-4px)' : 'translateY(0)', 
+        boxShadow: hovered ? '0 16px 40px rgba(0,0,0,0.08)' : 'none',
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
+      }}
     >
       <div style={{ position: 'relative', overflow: 'hidden' }}>
         {!imgLoaded && <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)' }} />}
@@ -208,9 +218,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
           onLoad={() => setImgLoaded(true)}
           style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', transition: 'transform 0.5s ease', transform: hovered ? 'scale(1.05)' : 'scale(1)', opacity: imgLoaded ? 1 : 0 }}
         />
-        <span style={{ position: 'absolute', top: 12, left: 12, padding: '4px 10px', background: badgeColor, color: badgeText, fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+        <span style={{ position: 'absolute', top: 10, left: 10, padding: '4px 10px', background: badgeColor, color: badgeText, fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', borderRadius: '2px' }}>
           Cond. {product.condition}
         </span>
+        {product.category && (
+          <span style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', background: 'rgba(255,255,255,0.95)', color: 'var(--ink)', fontSize: '0.6rem', fontWeight: 500, letterSpacing: '0.3px', fontFamily: 'var(--font-sans)', borderRadius: '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            {categoryLabel}
+          </span>
+        )}
       </div>
 
       <div style={{ padding: '1.25rem 1rem' }}>
