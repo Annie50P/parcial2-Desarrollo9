@@ -17,6 +17,14 @@ const CONDITIONS = [
   { value: 'C', label: 'C — Regular'   },
 ];
 
+const CATEGORIES = [
+  { value: 'celular', label: 'Celular' },
+  { value: 'laptop', label: 'Laptop' },
+  { value: 'pc', label: 'PC' },
+  { value: 'auriculares', label: 'Auriculares' },
+  { value: 'tablet', label: 'Tablet' },
+];
+
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '11px 14px',
@@ -47,6 +55,7 @@ export default function ProductModal({ isOpen, onClose, onSubmit, product, isLoa
   const [price,       setPrice]       = useState('');
   const [stock,       setStock]       = useState('');
   const [condition,   setCondition]   = useState<'A' | 'B' | 'C'>('A');
+  const [category,    setCategory]    = useState<'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet'>('celular');
   const [imageUrls,   setImageUrls]   = useState('');
   const [error,       setError]       = useState('');
 
@@ -57,10 +66,11 @@ export default function ProductModal({ isOpen, onClose, onSubmit, product, isLoa
       setPrice(product.price.toString());
       setStock(product.stock.toString());
       setCondition(product.condition);
+      setCategory(product.category);
       setImageUrls(product.image_urls.join(', '));
     } else {
       setName(''); setDescription(''); setPrice('');
-      setStock(''); setCondition('A'); setImageUrls('');
+      setStock(''); setCondition('A'); setCategory('celular'); setImageUrls('');
     }
     setError('');
   }, [product, isOpen]);
@@ -87,7 +97,7 @@ export default function ProductModal({ isOpen, onClose, onSubmit, product, isLoa
     const image_urls = imageUrls.split(',').map(u => u.trim()).filter(Boolean);
 
     try {
-      await onSubmit({ name: name.trim(), description: description.trim() || undefined, price: priceNum, stock: stockNum, condition, image_urls });
+      await onSubmit({ name: name.trim(), description: description.trim() || undefined, price: priceNum, stock: stockNum, condition, category, image_urls });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar producto');
@@ -288,6 +298,22 @@ export default function ProductModal({ isOpen, onClose, onSubmit, product, isLoa
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <label style={labelStyle}>Categoría</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet')}
+              style={{ ...inputStyle, cursor: 'pointer' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-light)'; }}
+              onBlur={e  => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* URLs de imágenes */}

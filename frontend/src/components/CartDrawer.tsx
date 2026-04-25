@@ -1,6 +1,6 @@
 import { useCartStore } from '../store/cart.store';
 import { createPortal } from 'react-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { checkoutService } from '../services/checkout.service';
 
@@ -8,13 +8,28 @@ export function CartDrawer() {
   const { items, isDrawerOpen, toggleDrawer, updateQuantity, removeItem, clearCart } = useCartStore();
   const { getToken, isSignedIn } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  useEffect(() => {
+    if (showLoginPrompt) {
+      const t = setTimeout(() => setShowLoginPrompt(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [showLoginPrompt]);
+
+  useEffect(() => {
+    if (showLoginPrompt) {
+      const t = setTimeout(() => setShowLoginPrompt(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [showLoginPrompt]);
 
   const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const handleCheckout = async () => {
     if (!isSignedIn) {
-      alert('Por favor inicia sesión para comprar.');
+      setShowLoginPrompt(true);
       return;
     }
     try {
@@ -51,12 +66,12 @@ export function CartDrawer() {
             <h2>Carrito</h2>
             {itemCount > 0 && (
               <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '0.72rem',
-                fontWeight: 500,
-                color: 'var(--ink3)',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '0.7rem',
+                fontWeight: 400,
+                color: 'var(--gray)',
               }}>
-                {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                {itemCount} {itemCount === 1 ? 'producto' : 'productos'}
               </span>
             )}
           </div>
@@ -91,9 +106,8 @@ export function CartDrawer() {
                   <div className="cart-item-row">
                     <h3>{product.name}</h3>
                     <span style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontStyle: 'italic',
-                      fontSize: '0.95rem',
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '0.9rem',
                       fontWeight: 400,
                       color: 'var(--ink)',
                     }}>
@@ -123,7 +137,10 @@ export function CartDrawer() {
                         <span className="cart-stock-max">Máx.</span>
                       )}
                     </div>
-                    <button className="cart-remove-btn" onClick={() => removeItem(product._id)}>
+                    <button 
+                      className="cart-remove-btn" 
+                      onClick={() => removeItem(product._id)}
+                    >
                       Eliminar
                     </button>
                   </div>
@@ -161,15 +178,64 @@ export function CartDrawer() {
             </button>
 
             <button
-              className="btn-ghost"
-              style={{ width: '100%', fontSize: '0.75rem', color: 'var(--ink3)' }}
-              onClick={clearCart}
+              className="cart-clear-btn"
+              onClick={() => clearCart()}
             >
               Vaciar carrito
             </button>
           </div>
         )}
       </div>
+
+      {/* Login Prompt - Floating Toast */}
+      {showLoginPrompt && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: '5rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          animation: 'slideUpFade 0.3s ease both',
+        }}>
+          <div style={{
+            background: 'var(--ink)',
+            borderRadius: 'var(--radius-ui)',
+            padding: '1rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 0010.5 21h-3a2.25 2.25 0 00-2.25 2.25V17.25A2.25 2.25 0 007.5 15h9a2.25 2.25 0 002.25-2.25V11.25A2.25 2.25 0 0015.75 9z" />
+            </svg>
+            <div>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--white)', marginBottom: 2 }}>
+                Inicia sesión
+              </p>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>
+                Debes iniciar sesión para comprar
+              </p>
+            </div>
+            <button
+              onClick={() => setShowLoginPrompt(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '4px',
+                marginLeft: '0.5rem',
+                cursor: 'pointer',
+                color: 'rgba(255,255,255,0.6)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </>,
     document.body
   );

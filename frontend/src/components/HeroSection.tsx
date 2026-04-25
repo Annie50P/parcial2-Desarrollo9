@@ -22,149 +22,165 @@ function useCountUp(target: number, duration = 1100, start = false) {
 export const HeroSection: React.FC = () => {
   const navigate = useNavigate();
   const [counting, setCounting] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const sectionRef = useRef<HTMLElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) setCounting(true); },
-      { threshold: 0.2 }
+      { threshold: 0.3 }
     );
     if (statsRef.current) observer.observe(statsRef.current);
     return () => observer.disconnect();
   }, []);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (sectionRef.current) {
+      const rect = sectionRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      setMousePos({ x, y });
+    }
+  };
 
   const c1 = useCountUp(40, 900, counting);
   const c2 = useCountUp(90, 1000, counting);
   const c3 = useCountUp(40, 1100, counting);
 
   return (
-    <section style={{
-      minHeight: '100vh',
-      background: 'var(--ink)',
-      display: 'flex',
-      alignItems: 'center',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Grid decorativo de fondo */}
+    <section
+      ref={sectionRef}
+      onMouseMove={handleMouseMove}
+      style={{
+        minHeight: '100vh',
+        background: 'var(--ink)',
+        display: 'flex',
+        alignItems: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        cursor: 'default',
+      }}
+    >
+      {/* Noise texture */}
       <div style={{
         position: 'absolute',
         inset: 0,
-        backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
-        backgroundSize: '60px 60px',
+        opacity: 0.035,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         pointerEvents: 'none',
       }} />
 
-      {/* Glow de acento */}
+      {/* Gradient blob that follows mouse */}
       <div style={{
         position: 'absolute',
-        top: '-20%',
-        right: '-5%',
-        width: '600px',
-        height: '600px',
-        background: 'radial-gradient(circle, rgba(91,80,255,0.18) 0%, transparent 70%)',
+        width: '800px',
+        height: '800px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
+        left: `${mousePos.x}%`,
+        top: `${mousePos.y}%`,
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        transition: 'transform 0.4s ease-out',
+        filter: 'blur(40px)',
+      }} />
+
+      {/* Diagonal lines */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 80px,
+          rgba(255,255,255,0.015) 80px,
+          rgba(255,255,255,0.015) 81px
+        )`,
         pointerEvents: 'none',
       }} />
 
       <div className="page-container" style={{ position: 'relative', zIndex: 2, paddingTop: '6rem', paddingBottom: '6rem' }}>
-        <div style={{ display: 'flex', gap: '4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
 
-          {/* ── Contenido izquierdo ── */}
           <div style={{ flex: '1 1 560px', maxWidth: 680 }}>
-
-            {/* Pill badge */}
-            <div
+            <p
               className="animate-slide-up stagger-1"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                background: 'rgba(91,80,255,0.15)',
-                border: '1px solid rgba(91,80,255,0.35)',
-                borderRadius: 20,
-                padding: '5px 14px',
-                marginBottom: '2.5rem',
+                fontSize: '0.68rem',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '3px',
+                color: 'var(--gray)',
+                marginBottom: '1.75rem',
+                fontFamily: 'var(--font-sans)',
               }}
             >
-              <span style={{ width: 7, height: 7, background: '#A09AFF', borderRadius: '50%', flexShrink: 0 }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#A09AFF', letterSpacing: '0.3px' }}>
-                Dispositivos certificados · 90 días de garantía
-              </span>
-            </div>
+              Tecnología reacondicionada
+            </p>
 
-            {/* Headline principal */}
             <h1
               className="animate-slide-up stagger-2"
               style={{
-                fontSize: 'clamp(3rem, 7.5vw, 6.5rem)',
-                fontWeight: 800,
+                fontSize: 'clamp(2.5rem, 7vw, 4.5rem)',
+                fontWeight: 300,
                 color: 'var(--white)',
-                lineHeight: 1.0,
-                letterSpacing: '-0.045em',
-                marginBottom: '2rem',
+                lineHeight: 1.08,
+                letterSpacing: '-0.035em',
+                marginBottom: '1.5rem',
+                fontFamily: 'var(--font-display)',
               }}
             >
-              Tecnología<br />
-              de segunda<br />
-              <span style={{
-                background: 'linear-gradient(135deg, #A09AFF 0%, #5B50FF 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>
-                sin igual.
-              </span>
+              Dispositivos que<br />
+              <em style={{ fontStyle: 'italic', fontWeight: 400 }}>funcionan.</em>
             </h1>
 
-            {/* Descripción */}
             <p
               className="animate-slide-up stagger-3"
               style={{
-                fontSize: 'clamp(1rem, 1.8vw, 1.15rem)',
-                color: 'rgba(255,255,255,0.55)',
-                lineHeight: 1.7,
-                maxWidth: 500,
-                marginBottom: '2.75rem',
+                fontSize: 'clamp(0.95rem, 1.5vw, 1.05rem)',
+                color: 'rgba(255,255,255,0.5)',
+                lineHeight: 1.75,
+                maxWidth: 440,
+                marginBottom: '2.25rem',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 300,
               }}
             >
-              Cada equipo pasa 40+ puntos de inspección técnica.
-              Hasta 40% más barato que nuevo. Garantía real incluida.
+              Cada equipo pasa por 40+ puntos de inspección técnica.
+              Hasta 40% más barato que nuevo. Garantía de 90 días incluida.
             </p>
 
-            {/* CTAs */}
-            <div className="animate-slide-up stagger-4" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div className="animate-slide-up stagger-4" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button
                 onClick={() => navigate('/home')}
                 style={{
-                  background: 'var(--accent)',
-                  color: 'var(--white)',
+                  background: 'var(--white)',
+                  color: 'var(--ink)',
                   border: 'none',
-                  borderRadius: 'var(--radius-ui)',
-                  padding: '14px 34px',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-display)',
+                  borderRadius: '2px',
+                  padding: '13px 26px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  fontFamily: 'var(--font-sans)',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 10,
-                  transition: 'var(--transition)',
-                  letterSpacing: '-0.01em',
+                  gap: 8,
+                  transition: 'all 0.25s ease',
+                  letterSpacing: '0.3px',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-hover)';
                   (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 28px rgba(91,80,255,0.45)';
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)';
                   (e.currentTarget as HTMLButtonElement).style.transform = '';
                   (e.currentTarget as HTMLButtonElement).style.boxShadow = '';
                 }}
               >
                 Ver catálogo
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </button>
@@ -173,64 +189,65 @@ export const HeroSection: React.FC = () => {
                 onClick={() => navigate('/login')}
                 style={{
                   background: 'transparent',
-                  color: 'rgba(255,255,255,0.65)',
-                  border: '1.5px solid rgba(255,255,255,0.15)',
-                  borderRadius: 'var(--radius-ui)',
-                  padding: '14px 28px',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-display)',
+                  color: 'rgba(255,255,255,0.6)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  borderRadius: '2px',
+                  padding: '13px 22px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  fontFamily: 'var(--font-sans)',
                   cursor: 'pointer',
-                  transition: 'var(--transition)',
+                  transition: 'all 0.25s ease',
+                  letterSpacing: '0.3px',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.4)';
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.6)';
                   (e.currentTarget as HTMLButtonElement).style.color = 'white';
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.65)';
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.25)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)';
                 }}
               >
                 Iniciar sesión
               </button>
             </div>
 
-            {/* Stats */}
             <div
               ref={statsRef}
               className="animate-slide-up stagger-5"
               style={{
                 display: 'flex',
-                gap: '2.5rem',
-                marginTop: '5rem',
-                paddingTop: '2.5rem',
+                gap: '2.25rem',
+                marginTop: '3.5rem',
+                paddingTop: '1.75rem',
                 borderTop: '1px solid rgba(255,255,255,0.1)',
                 flexWrap: 'wrap',
               }}
             >
               {[
-                { value: `${c1}+`, label: 'Puntos de inspección' },
-                { value: `${c2}d`,  label: 'Garantía incluida'   },
-                { value: `−${c3}%`, label: 'vs precio nuevo'     },
+                { value: `${c1}+`, label: 'PUNTOS DE INSPECCIÓN' },
+                { value: `${c2}d`, label: 'GARANTÍA' },
+                { value: `−${c3}%`, label: 'VS PRECIO NUEVO' },
               ].map((s, i) => (
                 <div key={i}>
                   <p style={{
-                    fontSize: 'clamp(1.75rem, 3vw, 2.75rem)',
-                    fontWeight: 800,
+                    fontSize: 'clamp(1.35rem, 2.2vw, 1.75rem)',
+                    fontWeight: 300,
                     color: 'var(--white)',
-                    letterSpacing: '-0.04em',
+                    letterSpacing: '-0.03em',
                     lineHeight: 1,
-                    marginBottom: '0.375rem',
+                    marginBottom: '0.2rem',
+                    fontFamily: 'var(--font-display)',
                   }}>
                     {s.value}
                   </p>
                   <p style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
+                    fontSize: '0.6rem',
+                    fontWeight: 500,
                     color: 'rgba(255,255,255,0.35)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1.2px',
+                    letterSpacing: '1.5px',
+                    fontFamily: 'var(--font-sans)',
                   }}>
                     {s.label}
                   </p>
@@ -239,48 +256,42 @@ export const HeroSection: React.FC = () => {
             </div>
           </div>
 
-          {/* ── Cards decorativas derecha ── */}
+          {/* Product cards decorativas */}
           <div style={{
             flex: '0 0 auto',
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '14px',
-            opacity: 0.65,
+            gap: '10px',
+            opacity: 0.5,
           }} className="hero-deco-grid">
             {[
-              { label: 'iPhone 13', sub: 'Excellent', price: '$529' },
-              { label: 'MacBook Air', sub: 'Good', price: '$849' },
-              { label: 'iPad Pro', sub: 'Excellent', price: '$399' },
-              { label: 'AirPods Pro', sub: 'Fair', price: '$129' },
+              { label: 'iPhone', sub: 'Excellent' },
+              { label: 'MacBook', sub: 'Good' },
+              { label: 'iPad', sub: 'Excellent' },
+              { label: 'AirPods', sub: 'Fair' },
             ].map((item, i) => (
               <div
                 key={i}
                 style={{
-                  width: 145,
-                  padding: '1.25rem',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 12,
-                  backdropFilter: 'blur(8px)',
-                  animationDelay: `${0.1 + i * 0.08}s`,
+                  width: 110,
+                  padding: '0.875rem',
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '3px',
                 }}
-                className="animate-slide-up"
               >
                 <div style={{
                   width: '100%',
-                  height: 80,
-                  background: 'rgba(255,255,255,0.06)',
-                  borderRadius: 8,
-                  marginBottom: '0.875rem',
+                  height: 55,
+                  background: 'rgba(255,255,255,0.04)',
+                  borderRadius: '2px',
+                  marginBottom: '0.625rem',
                 }} />
-                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', marginBottom: 3 }}>
+                <p style={{ fontSize: '0.7rem', fontWeight: 500, color: 'rgba(255,255,255,0.75)', marginBottom: 2, fontFamily: 'var(--font-sans)' }}>
                   {item.label}
                 </p>
-                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
+                <p style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-sans)' }}>
                   {item.sub}
-                </p>
-                <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#A09AFF' }}>
-                  {item.price}
                 </p>
               </div>
             ))}
@@ -289,7 +300,6 @@ export const HeroSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Ocultar grid deco en móvil */}
       <style>{`
         @media (max-width: 900px) { .hero-deco-grid { display: none !important; } }
       `}</style>

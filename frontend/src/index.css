@@ -1,53 +1,42 @@
 /* ============================================================
-   SafeTech — Design System v3
-   Fonts: Space Grotesk (display) · Inter (body)
-   Palette: Ink · Cream · White · Accent #5B50FF
+   SafeTech — Design System Monochrome
+   Fonts: Playfair Display (serif) · Outfit (sans)
+   Palette: Ink · White · Gray
    ============================================================ */
 
-:root {
-  --ink:    #111010;
-  --ink2:   #5A5755;
-  --ink3:   #A5A09A;
-  --cream:  #F7F6F3;
-  --white:  #FFFFFF;
-  --line:   #E6E3DC;
+ :root {
+   --ink:    #111010;
+   --ink2:   #3A3A3A;
+   --ink3:   #707070;
+   --gray:   #9A9A9A;
+   --cream:  #F5F4F2;
+   --white:  #FFFFFF;
+   --line:   #E0E0E0;
 
-  --accent:       #5B50FF;
-  --accent-hover: #4A40EE;
-  --accent-light: rgba(91,80,255,0.10);
+   /* ── Legacy aliases ── */
+   --text-primary:   var(--ink);
+   --text-secondary: var(--ink2);
+   --text-muted:     var(--ink3);
+   --bg-primary:    var(--cream);
+   --bg-secondary:  var(--white);
+   --bg-muted:      rgba(0,0,0,0.03);
+   --bg-dark:       var(--ink);
+   --border:        var(--line);
+   --border-dark:   var(--ink);
 
-  --success:       #059669;
-  --success-light: #D1FAE5;
-  --warning:       #D97706;
-  --warning-light: #FEF3C7;
-  --error:         #DC2626;
-  --error-light:   #FEE2E2;
-  --info:          #2563EB;
-  --info-light:    #DBEAFE;
-
-  /* ── Legacy aliases (mantienen compatibilidad) ── */
-  --text-primary:   var(--ink);
-  --text-secondary: var(--ink2);
-  --text-muted:     var(--ink3);
-  --bg-primary:     var(--cream);
-  --bg-secondary:   var(--white);
-  --bg-muted:       rgba(0,0,0,0.04);
-  --bg-dark:        var(--ink);
-  --border:         var(--line);
-  --border-dark:    var(--ink);
-
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-sans:    'Inter', sans-serif;
-  --font-serif:   'Space Grotesk', sans-serif; /* alias para compat */
+   --font-display: 'Playfair Display', serif;
+   --font-sans:    'Outfit', sans-serif;
+   --font-body:    'Outfit', sans-serif;
+   --font-serif:   'Playfair Display', serif;
 
   --header-height: 60px;
 
   --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-card: 14px;
-  --radius-ui:   8px;
-  --radius-pill: 20px;
+  --radius-md:   8px;
+  --radius-lg:   10px;
+  --radius-card: 10px;
+  --radius-ui:   4px;
+  --radius-pill: 4px;
 
   --shadow-sm: 0 1px 4px rgba(0,0,0,0.07);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.10);
@@ -156,6 +145,12 @@ button { font-family: var(--font-display); cursor: pointer; }
   margin: 0 auto;
   padding: 0 2.5rem;
   width: 100%;
+}
+
+/* Wrapper for pages that need top spacing (after fixed header) */
+.page-main {
+  min-height: 100vh;
+  padding-top: var(--header-height);
 }
 
 .page-section { padding: 5.5rem 0; }
@@ -426,6 +421,31 @@ select.input    { cursor: pointer; }
   margin-top: 2.5rem;
 }
 
+/* Products grid (Home) */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Product card nuevo */
+.product-card-new {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.product-card-new .product-card-image img {
+  display: block;
+}
+
+.product-card-new .product-card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 /* ── Product card ── */
 .product-card {
   position: relative;
@@ -536,11 +556,13 @@ select.input    { cursor: pointer; }
 
 /* ── Header / Nav ── */
 .nav-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   width: 100%;
   height: var(--header-height);
-  background: rgba(247,246,243,0.90);
+  background: rgba(255,255,255,0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
@@ -761,12 +783,44 @@ select.input    { cursor: pointer; }
   font-weight: 500;
   color: var(--ink3);
   cursor: pointer;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   transition: color var(--transition);
 }
-.cart-remove-btn:hover { color: var(--error); }
+.cart-remove-btn:hover { color: var(--ink); text-decoration: underline; }
 
-.cart-footer { padding: 1.125rem 1.5rem; border-top: 1px solid var(--line); background: var(--cream); }
+.cart-clear-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink2);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
+}
+.cart-clear-btn:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+}
+
+.cart-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.95);
+  display: flex;
+  alignItems: 'center';
+  justifyContent: 'center';
+  zIndex: 100;
+}
+.cart-confirm-dialog {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.cart-footer { padding: 1.125rem 1.5rem; border-top: 1px solid var(--line); background: var(--white); }
 .cart-subtotal { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.25rem; }
 .cart-subtotal span:first-child {
   font-size: 0.72rem;
@@ -905,6 +959,7 @@ select.input    { cursor: pointer; }
 
 .admin-page {
   padding: 2.5rem 3rem;
+  padding-top: calc(var(--header-height) + 2.5rem);
   max-width: 100%;
 }
 

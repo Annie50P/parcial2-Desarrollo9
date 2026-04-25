@@ -48,35 +48,69 @@ function Pagination({ total, page, onPage }: { total: number; page: number; onPa
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0.875rem 1.25rem',
+      padding: '1rem 1.5rem',
       borderTop: '1px solid var(--line)',
     }}>
-      <span style={{ fontSize: '0.78rem', color: 'var(--ink3)', fontWeight: 500 }}>
+      <span style={{ fontSize: '0.75rem', color: 'var(--gray)', fontFamily: 'var(--font-sans)' }}>
         {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} de {total}
       </span>
       <div style={{ display: 'flex', gap: '0.375rem' }}>
-        <button onClick={() => onPage(page - 1)} disabled={page === 1} className="btn-icon" style={{ width: 32, height: 32, fontSize: '1rem' }}>‹</button>
+        <button 
+          onClick={() => onPage(page - 1)} 
+          disabled={page === 1} 
+          style={{
+            width: 28, 
+            height: 28, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            border: 'none',
+            background: 'transparent',
+            color: page === 1 ? 'var(--line)' : 'var(--ink)',
+            cursor: page === 1 ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          ‹
+        </button>
         {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
           <button
             key={p}
             onClick={() => onPage(p)}
             style={{
-              width: 32, height: 32,
+              width: 28, 
+              height: 28,
               border: 'none',
-              borderRadius: 'var(--radius-ui)',
-              background: p === page ? 'var(--accent)' : 'transparent',
+              borderRadius: '2px',
+              background: p === page ? 'var(--ink)' : 'transparent',
               color: p === page ? 'var(--white)' : 'var(--ink2)',
-              fontFamily: 'var(--font-display)',
-              fontSize: '0.82rem',
-              fontWeight: p === page ? 700 : 500,
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.75rem',
+              fontWeight: p === page ? 500 : 400,
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
             }}
           >
             {p}
           </button>
         ))}
-        <button onClick={() => onPage(page + 1)} disabled={page === pages} className="btn-icon" style={{ width: 32, height: 32, fontSize: '1rem' }}>›</button>
+        <button 
+          onClick={() => onPage(page + 1)} 
+          disabled={page === pages}
+          style={{
+            width: 28, 
+            height: 28, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            border: 'none',
+            background: 'transparent',
+            color: page === pages ? 'var(--line)' : 'var(--ink)',
+            cursor: page === pages ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          ›
+        </button>
       </div>
     </div>
   );
@@ -88,22 +122,29 @@ function SectionHeader({ title, count }: { title: string; count?: number }) {
     <div style={{
       display: 'flex',
       alignItems: 'baseline',
-      gap: '0.875rem',
-      marginBottom: '1.75rem',
-      paddingBottom: '1.25rem',
-      borderBottom: '1.5px solid var(--line)',
+      gap: '1rem',
+      marginBottom: '2rem',
+      paddingBottom: '1.5rem',
+      borderBottom: '1px solid var(--line)',
     }}>
-      <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 800, letterSpacing: '-0.03em' }}>
+      <h2 style={{ 
+        fontSize: 'clamp(1.5rem, 3vw, 2rem)', 
+        fontWeight: 300, 
+        letterSpacing: '-0.025em',
+        fontFamily: 'var(--font-display)',
+        color: 'var(--ink)',
+      }}>
         {title}
       </h2>
       {count !== undefined && (
         <span style={{
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          color: 'var(--ink3)',
-          background: 'rgba(0,0,0,0.05)',
-          padding: '3px 10px',
-          borderRadius: 'var(--radius-pill)',
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          color: 'var(--gray)',
+          background: 'var(--cream)',
+          padding: '4px 12px',
+          borderRadius: '2px',
+          fontFamily: 'var(--font-sans)',
         }}>
           {count}
         </span>
@@ -282,10 +323,25 @@ export default function AdminDashboard() {
           {activeSection === 'dashboard' && (
             <div style={{ animation: 'fadeIn 0.3s ease both' }}>
               <div style={{ marginBottom: '2.5rem' }}>
-                <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '0.5rem' }}>
+                <p style={{ 
+                  fontSize: '0.65rem', 
+                  fontWeight: 500, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '2px', 
+                  color: 'var(--gray)', 
+                  marginBottom: '0.75rem',
+                  fontFamily: 'var(--font-sans)' 
+                }}>
                   Panel de control
                 </p>
-                <h1 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.035em' }}>
+                <h1 style={{ 
+                  fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', 
+                  fontWeight: 300, 
+                  letterSpacing: '-0.025em',
+                  color: 'var(--ink)',
+                  fontFamily: 'var(--font-display)',
+                  lineHeight: 1.1,
+                }}>
                   Resumen general
                 </h1>
               </div>
