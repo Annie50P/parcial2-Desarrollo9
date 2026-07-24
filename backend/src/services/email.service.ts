@@ -60,6 +60,7 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   shipped: 'Enviado',
   delivered: 'Entregado',
   failed: 'Fallido',
+  refunded: 'Reembolsado',
 };
 
 const WARRANTY_STATUS_LABEL: Record<string, string> = {
@@ -68,6 +69,12 @@ const WARRANTY_STATUS_LABEL: Record<string, string> = {
   resolved: 'Resuelto',
   rejected: 'Rechazado',
   refunded: 'Reembolsado',
+};
+
+const SUPPORT_STATUS_LABEL: Record<string, string> = {
+  open: 'Abierto',
+  in_review: 'En revisión',
+  closed: 'Cerrado',
 };
 
 export async function sendPurchaseConfirmationEmail(to: string, order: { _id: unknown; total_amount: number }): Promise<void> {
@@ -107,5 +114,36 @@ export async function sendWarrantyStatusChangedEmail(
     to,
     `Actualizacion de tu garantia SafeTech (#${String(warranty._id).slice(-6)})`,
     `<p>El estado de tu garantia <strong>#${String(warranty._id).slice(-6)}</strong> cambio a: <strong>${label}</strong>.</p>`,
+  );
+}
+
+export async function sendSupportTicketCreatedEmail(to: string, ticket: { _id: unknown }): Promise<void> {
+  await sendEmail(
+    to,
+    `Recibimos tu ticket de soporte (#${String(ticket._id).slice(-6)})`,
+    `<p>Registramos tu ticket de soporte <strong>#${String(ticket._id).slice(-6)}</strong>. Te avisaremos por correo ante cualquier actualizacion.</p>`,
+  );
+}
+
+export async function sendSupportTicketStatusChangedEmail(
+  to: string,
+  ticket: { _id: unknown; status: string },
+): Promise<void> {
+  const label = SUPPORT_STATUS_LABEL[ticket.status] ?? ticket.status;
+  await sendEmail(
+    to,
+    `Actualizacion de tu ticket de soporte SafeTech (#${String(ticket._id).slice(-6)})`,
+    `<p>El estado de tu ticket de soporte <strong>#${String(ticket._id).slice(-6)}</strong> cambio a: <strong>${label}</strong>.</p>`,
+  );
+}
+
+export async function sendPriceDropAlertEmail(
+  to: string,
+  data: { productName: string; oldPrice: number; newPrice: number },
+): Promise<void> {
+  await sendEmail(
+    to,
+    `¡Bajó de precio! ${data.productName}`,
+    `<p>El producto <strong>${data.productName}</strong> de tu lista de deseos bajó de precio.</p><p>Antes: <strong>$${data.oldPrice.toFixed(2)}</strong> &rarr; Ahora: <strong>$${data.newPrice.toFixed(2)}</strong></p>`,
   );
 }

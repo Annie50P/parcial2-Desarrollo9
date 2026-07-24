@@ -1,0 +1,219 @@
+import { describe, expect, test } from 'bun:test';
+import {
+  bestSellersQuerySchema,
+  compareQuerySchema,
+  createProductSchema,
+  lowStockQuerySchema,
+  productFilterSchema,
+  recentProductsQuerySchema,
+  relatedProductsQuerySchema,
+  updateProductSchema,
+} from './product.validator';
+
+const validProduct = {
+  name: 'iPhone 12',
+  price: 350,
+  condition: 'A' as const,
+  category: 'celular' as const,
+};
+
+describe('createProductSchema', () => {
+  test('accepts a valid product and defaults stock to 0', () => {
+    const result = createProductSchema.safeParse(validProduct);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.stock).toBe(0);
+    }
+  });
+
+  test('accepts an explicit stock value', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, stock: 5 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.stock).toBe(5);
+    }
+  });
+
+  test('rejects a negative price', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, price: -1 });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects an invalid condition', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, condition: 'D' });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects an invalid category', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, category: 'consola' });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects a non-url image', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, image_urls: ['not-a-url'] });
+    expect(result.success).toBe(false);
+  });
+
+  test('accepts an omitted battery_health', () => {
+    const result = createProductSchema.safeParse(validProduct);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.battery_health).toBeUndefined();
+    }
+  });
+
+  test('accepts a battery_health within range', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, battery_health: 92 });
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects a battery_health above 100', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, battery_health: 101 });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects a negative battery_health', () => {
+    const result = createProductSchema.safeParse({ ...validProduct, battery_health: -1 });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('updateProductSchema', () => {
+  test('accepts a partial update without resetting stock to 0', () => {
+    const result = updateProductSchema.safeParse({ price: 400 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.stock).toBeUndefined();
+    }
+  });
+
+  test('accepts an optional reason for stock adjustment', () => {
+    const result = updateProductSchema.safeParse({ stock: 10, reason: 'Reposicion' });
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects an empty reason string', () => {
+    const result = updateProductSchema.safeParse({ reason: '' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('productFilterSchema', () => {
+  test('accepts an empty filter', () => {
+    const result = productFilterSchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  test('coerces numeric query params from strings', () => {
+    const result = productFilterSchema.safeParse({ minPrice: '10', maxPrice: '100', limit: '20', page: '2' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.minPrice).toBe(10);
+      expect(result.data.limit).toBe(20);
+    }
+  });
+
+  test('rejects minPrice greater than maxPrice', () => {
+    const result = productFilterSchema.safeParse({ minPrice: '100', maxPrice: '10' });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects a limit above the max allowed', () => {
+    const result = productFilterSchema.safeParse({ limit: '51' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('lowStockQuerySchema', () => {
+  test('accepts a missing threshold', () => {
+    const result = lowStockQuerySchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects a negative threshold', () => {
+    const result = lowStockQuerySchema.safeParse({ threshold: '-1' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('bestSellersQuerySchema', () => {
+  test('accepts a limit within range', () => {
+    const result = bestSellersQuerySchema.safeParse({ limit: '5' });
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects a limit above 12', () => {
+    const result = bestSellersQuerySchema.safeParse({ limit: '13' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('compareQuerySchema', () => {
+  test('accepts two to four valid ObjectIds', () => {
+    const result = compareQuerySchema.safeParse({
+      ids: '507f1f77bcf86cd799439011,507f1f77bcf86cd799439012',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects a single id', () => {
+    const result = compareQuerySchema.safeParse({ ids: '507f1f77bcf86cd799439011' });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects more than four ids', () => {
+    const ids = Array.from({ length: 5 }, (_, i) => `507f1f77bcf86cd79943901${i}`).join(',');
+    const result = compareQuerySchema.safeParse({ ids });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects an invalid ObjectId in the list', () => {
+    const result = compareQuerySchema.safeParse({ ids: '507f1f77bcf86cd799439011,not-an-id' });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects a missing ids param', () => {
+    const result = compareQuerySchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('relatedProductsQuerySchema', () => {
+  test('accepts a missing limit', () => {
+    const result = relatedProductsQuerySchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  test('coerces a valid limit from a string', () => {
+    const result = relatedProductsQuerySchema.safeParse({ limit: '6' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.limit).toBe(6);
+    }
+  });
+
+  test('rejects a limit above 12', () => {
+    const result = relatedProductsQuerySchema.safeParse({ limit: '13' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('recentProductsQuerySchema', () => {
+  test('accepts a missing limit', () => {
+    const result = recentProductsQuerySchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  test('coerces a valid limit from a string', () => {
+    const result = recentProductsQuerySchema.safeParse({ limit: '5' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.limit).toBe(5);
+    }
+  });
+
+  test('rejects a limit above 12', () => {
+    const result = recentProductsQuerySchema.safeParse({ limit: '13' });
+    expect(result.success).toBe(false);
+  });
+});

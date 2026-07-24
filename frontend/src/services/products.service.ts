@@ -1,4 +1,4 @@
-import type { Product } from '../types/product';
+import type { BestSellerProduct, Product } from '../types/product';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -10,6 +10,7 @@ export interface CreateProductDTO {
   condition: 'A' | 'B' | 'C';
   category: 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet';
   image_urls: string[];
+  battery_health?: number;
 }
 
 export interface UpdateProductDTO {
@@ -20,6 +21,7 @@ export interface UpdateProductDTO {
   condition?: 'A' | 'B' | 'C';
   category?: 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet';
   image_urls?: string[];
+  battery_health?: number;
   // Motivo del ajuste de stock (HU-36), para el historial de movimientos de inventario.
   reason?: string;
 }
@@ -139,6 +141,47 @@ export const productsService = {
     const result = await response.json();
     // Backend returns { success, data: product }; older callers may have relied on raw shape.
     return (result?.data ?? result) as Product;
+  },
+
+  async compare(ids: string[]): Promise<Product[]> {
+    const response = await fetch(`${API_URL}/products/compare?ids=${ids.map(encodeURIComponent).join(',')}`);
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result?.message || result?.errors?.[0]?.message || 'Failed to fetch products for comparison');
+    }
+    const result = await response.json();
+    return result.data || [];
+  },
+
+  async getRelated(id: string, limit?: number): Promise<Product[]> {
+    const qs = limit !== undefined ? `?limit=${limit}` : '';
+    const response = await fetch(`${API_URL}/products/${id}/related${qs}`);
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result?.message || result?.errors?.[0]?.message || 'Failed to fetch related products');
+    }
+    const result = await response.json();
+    return result.data || [];
+  },
+
+  async getBestSellers(limit = 4): Promise<BestSellerProduct[]> {
+    const response = await fetch(`${API_URL}/products/best-sellers?limit=${limit}`);
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result?.message || result?.errors?.[0]?.message || 'Failed to fetch best sellers');
+    }
+    const result = await response.json();
+    return result.data || [];
+  },
+
+  async getRecent(limit = 8): Promise<Product[]> {
+    const response = await fetch(`${API_URL}/products/recent?limit=${limit}`);
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result?.message || result?.errors?.[0]?.message || 'Failed to fetch recent products');
+    }
+    const result = await response.json();
+    return result.data || [];
   },
 
   async create(data: CreateProductDTO, token: string): Promise<Product> {

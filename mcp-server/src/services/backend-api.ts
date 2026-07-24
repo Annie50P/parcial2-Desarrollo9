@@ -1,12 +1,38 @@
 import type {
+  AssignTechnicianInput,
+  AssignTechnicianResult,
+  BackendAssignTechnicianResponse,
+  BackendSupportTicketResponse,
+  CreateWarrantyClaimInput,
+  CreateWarrantyClaimResult,
+  CreateSupportTicketInput,
+  CreateSupportTicketResult,
+  DeleteProductResult,
+  CreateProductInput,
+  CreateProductResult,
+  ProductPagination,
+  ProductSearchAdvancedInput,
+  UpdateProductInput,
+  UpdateProductResult,
   BackendOrderResponse,
+  BackendSalesReportResponse,
+  BackendWarrantyReportResponse,
+  BackendWarrantyStatusResponse,
   BackendWarrantyResponse,
   BackendHealth,
+  ProductCreateResponse,
+  ProductDeleteResponse,
   OrderSummary,
   ProductDetail,
   ProductDetailResponse,
   ProductListResponse,
   ProductSummary,
+  SalesReportInput,
+  SalesReportResult,
+  UpdateWarrantyStatusInput,
+  UpdateWarrantyStatusResult,
+  WarrantyReportInput,
+  WarrantyReportResult,
   WarrantySummary,
 } from '../types.js';
 
@@ -68,6 +94,63 @@ export class BackendApiClient {
     };
   }
 
+  async searchProductsAdvanced(
+    filters: ProductSearchAdvancedInput,
+    requestId: string,
+  ): Promise<{ data: ProductSummary[]; pagination?: ProductPagination }> {
+    const search = new URLSearchParams();
+
+    if (filters.name) {
+      search.set('name', filters.name);
+    }
+
+    if (filters.category) {
+      search.set('category', filters.category);
+    }
+
+    if (filters.condition) {
+      search.set('condition', filters.condition);
+    }
+
+    if (filters.minPrice !== undefined) {
+      search.set('minPrice', String(filters.minPrice));
+    }
+
+    if (filters.maxPrice !== undefined) {
+      search.set('maxPrice', String(filters.maxPrice));
+    }
+
+    if (filters.available !== undefined) {
+      search.set('available', String(filters.available));
+    }
+
+    if (filters.limit !== undefined) {
+      search.set('limit', String(filters.limit));
+    }
+
+    const path = search.size > 0 ? `/products?${search.toString()}` : '/products';
+    const response = await this.request<ProductListResponse>(path, {
+      method: 'GET',
+      headers: {
+        'x-request-id': requestId,
+      },
+    });
+
+    return {
+      data: response.data.map((product) => ({
+        id: product._id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        stock: product.stock,
+        condition: product.condition,
+        category: product.category,
+        primaryImageUrl: product.image_urls?.[0],
+      })),
+      ...(response.pagination ? { pagination: response.pagination } : {}),
+    };
+  }
+
   async getProduct(productId: string, requestId: string): Promise<{ data: ProductDetail }> {
     const response = await this.request<ProductDetailResponse>(`/products/${productId}`, {
       method: 'GET',
@@ -87,6 +170,116 @@ export class BackendApiClient {
         category: response.data.category,
         primaryImageUrl: response.data.image_urls?.[0],
         imageUrls: response.data.image_urls ?? [],
+      },
+    };
+  }
+
+  async createProduct(
+    token: string,
+    input: CreateProductInput,
+    requestId: string,
+  ): Promise<{ data: CreateProductResult }> {
+    const response = await this.request<ProductCreateResponse>('/products', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-request-id': requestId,
+      },
+      body: JSON.stringify({
+        name: input.name,
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        price: input.price,
+        ...(input.stock !== undefined ? { stock: input.stock } : {}),
+        condition: input.condition,
+        category: input.category,
+        ...(input.imageUrls !== undefined ? { image_urls: input.imageUrls } : {}),
+      }),
+    });
+
+    return {
+      data: {
+        id: response.data._id,
+        name: response.data.name,
+        description: response.data.description,
+        price: response.data.price,
+        stock: response.data.stock,
+        condition: response.data.condition,
+        category: response.data.category,
+        primaryImageUrl: response.data.image_urls?.[0],
+        imageUrls: response.data.image_urls ?? [],
+      },
+    };
+  }
+
+  async updateProduct(
+    token: string,
+    productId: string,
+    input: UpdateProductInput,
+    requestId: string,
+  ): Promise<{ data: UpdateProductResult }> {
+    const response = await this.request<ProductCreateResponse>(`/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-request-id': requestId,
+      },
+      body: JSON.stringify({
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.price !== undefined ? { price: input.price } : {}),
+        ...(input.stock !== undefined ? { stock: input.stock } : {}),
+        ...(input.condition !== undefined ? { condition: input.condition } : {}),
+        ...(input.category !== undefined ? { category: input.category } : {}),
+        ...(input.imageUrls !== undefined ? { image_urls: input.imageUrls } : {}),
+        ...(input.reason !== undefined ? { reason: input.reason } : {}),
+      }),
+    });
+
+    return {
+      data: {
+        id: response.data._id,
+        name: response.data.name,
+        description: response.data.description,
+        price: response.data.price,
+        stock: response.data.stock,
+        condition: response.data.condition,
+        category: response.data.category,
+        primaryImageUrl: response.data.image_urls?.[0],
+        imageUrls: response.data.image_urls ?? [],
+      },
+    };
+  }
+
+  async deleteProduct(
+    token: string,
+    productId: string,
+    requestId: string,
+  ): Promise<{ data: DeleteProductResult }> {
+    const response = await this.request<ProductDeleteResponse>(`/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-request-id': requestId,
+      },
+    });
+
+    return {
+      data: {
+        success: response.success,
+        message: response.message,
+        data: {
+          id: response.data._id,
+          name: response.data.name,
+          description: response.data.description,
+          price: response.data.price,
+          stock: response.data.stock,
+          condition: response.data.condition,
+          category: response.data.category,
+          primaryImageUrl: response.data.image_urls?.[0],
+          imageUrls: response.data.image_urls ?? [],
+        },
       },
     };
   }
@@ -137,6 +330,52 @@ export class BackendApiClient {
     };
   }
 
+  async getSalesReport(
+    token: string,
+    input: SalesReportInput,
+    requestId: string,
+  ): Promise<{ data: SalesReportResult }> {
+    const search = new URLSearchParams({
+      from: input.from,
+      to: input.to,
+    });
+
+    const response = await this.request<BackendSalesReportResponse>(`/reports/sales?${search.toString()}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-request-id': requestId,
+      },
+    });
+
+    return {
+      data: response.data,
+    };
+  }
+
+  async getWarrantyReport(
+    token: string,
+    input: WarrantyReportInput,
+    requestId: string,
+  ): Promise<{ data: WarrantyReportResult }> {
+    const search = new URLSearchParams({
+      from: input.from,
+      to: input.to,
+    });
+
+    const response = await this.request<BackendWarrantyReportResponse>(`/reports/warranties?${search.toString()}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-request-id': requestId,
+      },
+    });
+
+    return {
+      data: response.data,
+    };
+  }
+
   async getMyWarranties(token: string, requestId: string): Promise<{ data: WarrantySummary[] }> {
     const response = await this.request<BackendWarrantyResponse[]>('/warranties/mine', {
       method: 'GET',
@@ -159,6 +398,126 @@ export class BackendApiClient {
         ...(warranty.technicianName ? { technicianName: warranty.technicianName } : {}),
         order: normalizeWarrantyOrder(warranty.orderId),
       })),
+    };
+  }
+
+  async createWarrantyClaim(
+    token: string,
+    input: CreateWarrantyClaimInput,
+    requestId: string,
+  ): Promise<{ data: CreateWarrantyClaimResult }> {
+    const response = await this.request<CreateWarrantyClaimResult>('/warranties', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-request-id': requestId,
+      },
+      body: JSON.stringify(input),
+    });
+
+    return {
+      data: {
+        ticketId: response.ticketId,
+        status: response.status,
+      },
+    };
+  }
+
+  async createSupportTicket(
+    token: string,
+    input: CreateSupportTicketInput,
+    requestId: string,
+  ): Promise<{ data: CreateSupportTicketResult }> {
+    const response = await this.request<BackendSupportTicketResponse>('/support-tickets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-request-id': requestId,
+      },
+      body: JSON.stringify(input),
+    });
+
+    return {
+      data: {
+        ticketId: response.ticketId,
+        status: response.status,
+      },
+    };
+  }
+
+  async updateWarrantyStatus(
+    token: string,
+    warrantyId: string,
+    input: UpdateWarrantyStatusInput,
+    requestId: string,
+  ): Promise<{ data: UpdateWarrantyStatusResult }> {
+    const response = await this.request<BackendWarrantyStatusResponse>(
+      `/warranties/${warrantyId}/status`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'x-request-id': requestId,
+        },
+        body: JSON.stringify(input),
+      },
+    );
+
+    return {
+      data: {
+        id: response._id,
+        orderId: response.orderId,
+        userId: response.userId,
+        status: response.status,
+        description: response.description,
+        evidenceUrls: response.evidenceUrls ?? [],
+        ...(response.repairNotes !== undefined ? { repairNotes: response.repairNotes } : {}),
+        ...(response.technicianId ? { technicianId: response.technicianId } : {}),
+        ...(response.technicianName ? { technicianName: response.technicianName } : {}),
+        createdAt: response.createdAt,
+        ...(response.updatedAt ? { updatedAt: response.updatedAt } : {}),
+        ...(response.resolvedAt ? { resolvedAt: response.resolvedAt } : {}),
+      },
+    };
+  }
+
+  async assignTechnician(
+    token: string,
+    warrantyId: string,
+    input: AssignTechnicianInput,
+    requestId: string,
+  ): Promise<{ data: AssignTechnicianResult }> {
+    const response = await this.request<BackendAssignTechnicianResponse>(
+      `/warranties/${warrantyId}/assign`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'x-request-id': requestId,
+        },
+        body: JSON.stringify(input),
+      },
+    );
+
+    return {
+      data: {
+        id: response._id,
+        orderId: response.orderId,
+        userId: response.userId,
+        status: response.status,
+        description: response.description,
+        evidenceUrls: response.evidenceUrls ?? [],
+        ...(response.repairNotes !== undefined ? { repairNotes: response.repairNotes } : {}),
+        ...(response.technicianId ? { technicianId: response.technicianId } : {}),
+        ...(response.technicianName ? { technicianName: response.technicianName } : {}),
+        createdAt: response.createdAt,
+        ...(response.updatedAt ? { updatedAt: response.updatedAt } : {}),
+        ...(response.resolvedAt ? { resolvedAt: response.resolvedAt } : {}),
+      },
     };
   }
 

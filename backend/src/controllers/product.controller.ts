@@ -1,8 +1,11 @@
 import { Context } from 'hono';
 import mongoose from 'mongoose';
 import { Product } from '../models/Product';
+import { Order } from '../models/Order';
 import { InventoryMovement } from '../models/InventoryMovement';
 import { recordInventoryMovement } from '../services/inventory.service';
+import { notifyPriceDrop } from '../services/priceAlert.service';
+import { recordAuditLog } from '../services/audit.service';
 
 export const getProducts = async (c: Context) => {
   try {
@@ -58,6 +61,19 @@ export const getProducts = async (c: Context) => {
   }
 };
 
+export const getProductsForComparison = async (c: Context) => {
+  try {
+    const { ids } = c.req.valid('query' as any) as { ids: string };
+    const productIds = [...new Set(ids.split(',').map((id) => id.trim()).filter(Boolean))];
+
+    const products = await Product.find({ _id: { $in: productIds } });
+
+    return c.json({ success: true, data: products });
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
+  }
+};
+
 export const getProductById = async (c: Context) => {
   try {
     const id = c.req.param('id');
@@ -95,6 +111,14 @@ export const createProduct = async (c: Context) => {
         performedBy: userId ?? 'system',
       });
     }
+
+    await recordAuditLog({
+      userId: userId ?? 'system',
+      action: 'product.create',
+      resourceType: 'Product',
+      resourceId: String(newProduct._id),
+      metadata: { name: (data as { name?: string }).name },
+    });
 
     return c.json({ success: true, data: newProduct }, 201);
   } catch (error: any) {
@@ -136,7 +160,47 @@ export const updateProduct = async (c: Context) => {
       });
     }
 
+    if (data.price !== undefined && data.price < previousProduct.price) {
+      await notifyPriceDrop(updatedProduct._id, updatedProduct.name, updatedProduct.price);
+    }
+
+    await recordAuditLog({
+      userId: userId ?? 'system',
+      action: 'product.update',
+      resourceType: 'Product',
+      resourceId: String(updatedProduct._id),
+      metadata: { changes: updateData },
+    });
+
     return c.json({ success: true, data: updatedProduct });
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
+  }
+};
+
+const DEFAULT_RELATED_LIMIT = 4;
+
+export const getRelatedProducts = async (c: Context) => {
+  try {
+    const id = c.req.param('id');
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return c.json({ success: false, message: 'ID de producto invalido' }, 400);
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return c.json({ success: false, message: 'Producto no encontrado' }, 404);
+    }
+
+    const { limit } = c.req.valid('query' as any) as { limit?: number };
+    const effectiveLimit = limit ?? DEFAULT_RELATED_LIMIT;
+
+    const related = await Product.find({
+      _id: { $ne: product._id },
+      category: product.category,
+    }).limit(effectiveLimit);
+
+    return c.json({ success: true, data: related });
   } catch (error: any) {
     return c.json({ success: false, message: error.message }, 500);
   }
@@ -174,16 +238,95 @@ export const getLowStockProducts = async (c: Context) => {
   }
 };
 
+export const getBestSellingProducts = async (c: Context) => {
+  try {
+    const { limit } = c.req.valid('query' as any) as { limit?: number };
+    const effectiveLimit = limit ?? 4;
+    const productCollection = Product.collection.name;
+
+    const bestSellers = await Order.aggregate([
+      { $match: { status: 'paid' } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.product',
+          unitsSold: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+        },
+      },
+      { $sort: { unitsSold: -1, totalRevenue: -1 } },
+      { $limit: effectiveLimit },
+      {
+        $lookup: {
+          from: productCollection,
+          localField: '_id',
+          foreignField: '_id',
+          as: 'product',
+        },
+      },
+      { $unwind: '$product' },
+      {
+        $project: {
+          _id: '$product._id',
+          name: '$product.name',
+          description: '$product.description',
+          price: '$product.price',
+          stock: '$product.stock',
+          condition: '$product.condition',
+          category: '$product.category',
+          image_urls: '$product.image_urls',
+          createdAt: '$product.createdAt',
+          updatedAt: '$product.updatedAt',
+          unitsSold: 1,
+          totalRevenue: 1,
+        },
+      },
+    ]);
+
+    return c.json({ success: true, data: bestSellers });
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
+  }
+};
+
+const DEFAULT_RECENT_LIMIT = 8;
+
+export const getRecentProducts = async (c: Context) => {
+  try {
+    const { limit } = c.req.valid('query' as any) as { limit?: number };
+    const effectiveLimit = limit ?? DEFAULT_RECENT_LIMIT;
+
+    const products = await Product.find().sort({ createdAt: -1 }).limit(effectiveLimit);
+
+    return c.json({ success: true, data: products });
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
+  }
+};
+
 export const deleteProduct = async (c: Context) => {
   try {
     const id = c.req.param('id');
+    const userId = c.get('userId');
     const deletedProduct = await Product.findByIdAndDelete(id);
-    
+
     if (!deletedProduct) {
       return c.json({ success: false, message: 'Producto no encontrado' }, 404);
     }
-    
-    return c.json({ success: true, message: 'Producto eliminado correctamente' });
+
+    await recordAuditLog({
+      userId: userId ?? 'system',
+      action: 'product.delete',
+      resourceType: 'Product',
+      resourceId: id,
+      metadata: { name: (deletedProduct as { name?: string }).name },
+    });
+
+    return c.json({
+      success: true,
+      message: 'Producto eliminado correctamente',
+      data: deletedProduct,
+    });
   } catch (error: any) {
     return c.json({ success: false, message: error.message }, 500);
   }

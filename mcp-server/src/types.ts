@@ -29,8 +29,59 @@ export interface ProductSummary {
   primaryImageUrl?: string;
 }
 
+export interface ProductSearchAdvancedInput {
+  name?: string;
+  category?: 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet';
+  condition?: 'A' | 'B' | 'C';
+  minPrice?: number;
+  maxPrice?: number;
+  available?: boolean;
+  limit?: number;
+}
+
 export interface ProductDetail extends ProductSummary {
   imageUrls: string[];
+}
+
+export interface ProductPagination {
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface CreateProductInput {
+  name: string;
+  description?: string;
+  price: number;
+  stock?: number;
+  condition: 'A' | 'B' | 'C';
+  category: 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet';
+  imageUrls?: string[];
+}
+
+export interface CreateProductResult extends ProductDetail {}
+
+export interface UpdateProductInput {
+  name?: string;
+  description?: string;
+  price?: number;
+  stock?: number;
+  condition?: 'A' | 'B' | 'C';
+  category?: 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet';
+  imageUrls?: string[];
+  reason?: string;
+}
+
+export interface UpdateProductResult extends ProductDetail {}
+
+export interface DeleteProductInput {
+  reason?: string;
+}
+
+export interface DeleteProductResult {
+  success: boolean;
+  message: string;
+  data: ProductDetail;
 }
 
 export interface ProductListResponse {
@@ -48,10 +99,46 @@ export interface ProductListResponse {
     updatedAt?: string;
     __v?: number;
   }>;
+  pagination?: ProductPagination;
 }
 
 export interface ProductDetailResponse {
   success: boolean;
+  data: {
+    _id: string;
+    name: string;
+    description?: string;
+    price: number;
+    stock: number;
+    condition: 'A' | 'B' | 'C';
+    category: 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet';
+    image_urls?: string[];
+    createdAt?: string;
+    updatedAt?: string;
+    __v?: number;
+  };
+}
+
+export interface ProductCreateResponse {
+  success: boolean;
+  data: {
+    _id: string;
+    name: string;
+    description?: string;
+    price: number;
+    stock: number;
+    condition: 'A' | 'B' | 'C';
+    category: 'celular' | 'laptop' | 'pc' | 'auriculares' | 'tablet';
+    image_urls?: string[];
+    createdAt?: string;
+    updatedAt?: string;
+    __v?: number;
+  };
+}
+
+export interface ProductDeleteResponse {
+  success: boolean;
+  message: string;
   data: {
     _id: string;
     name: string;
@@ -160,6 +247,125 @@ export interface WarrantySummary {
   order: WarrantyOrderSummary;
 }
 
+export interface CreateWarrantyClaimInput {
+  orderId: string;
+  reason: string;
+  description: string;
+  evidenceUrls?: string[];
+}
+
+export interface CreateWarrantyClaimResult {
+  ticketId: string;
+  status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
+}
+
+export interface CreateSupportTicketInput {
+  category: string;
+  description: string;
+  contactChannel: string;
+}
+
+export interface CreateSupportTicketResult {
+  ticketId: string;
+  status: 'open' | 'in_review' | 'closed';
+}
+
+export interface SalesReportInput {
+  from: string;
+  to: string;
+}
+
+export interface SalesReportSummary {
+  ordersCount: number;
+  grossRevenue: number;
+  averageOrderValue: number;
+}
+
+export interface SalesReportResult {
+  summary: SalesReportSummary;
+  range: {
+    from: string;
+    to: string;
+  };
+}
+
+export interface BackendSalesReportResponse {
+  success: boolean;
+  data: SalesReportResult;
+}
+
+export interface WarrantyReportInput {
+  from: string;
+  to: string;
+}
+
+export interface WarrantyReportSummaryByStatus {
+  status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
+  count: number;
+}
+
+export interface WarrantyReportSummaryByTechnician {
+  technicianId?: string;
+  technicianName: string;
+  count: number;
+}
+
+export interface WarrantyReportResult {
+  summary: {
+    totalCases: number;
+  };
+  byStatus: WarrantyReportSummaryByStatus[];
+  byTechnician: WarrantyReportSummaryByTechnician[];
+  range: {
+    from: string;
+    to: string;
+  };
+}
+
+export interface BackendWarrantyReportResponse {
+  success: boolean;
+  data: WarrantyReportResult;
+}
+
+export interface UpdateWarrantyStatusInput {
+  status: 'review' | 'resolved' | 'rejected' | 'refunded';
+  repairNotes?: string;
+}
+
+export interface AssignTechnicianInput {
+  technicianId: string;
+}
+
+export interface UpdateWarrantyStatusResult {
+  id: string;
+  orderId: string;
+  userId: string;
+  status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
+  description: string;
+  evidenceUrls: string[];
+  repairNotes?: string;
+  technicianId?: string;
+  technicianName?: string;
+  createdAt: string;
+  updatedAt?: string;
+  resolvedAt?: string;
+}
+
+export interface AssignTechnicianResult {
+  id: string;
+  orderId: string;
+  userId: string;
+  status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
+  description: string;
+  evidenceUrls: string[];
+  repairNotes?: string;
+  technicianId?: string;
+  technicianName?: string;
+  createdAt: string;
+  updatedAt?: string;
+  resolvedAt?: string;
+}
+
 export interface BackendWarrantyResponse {
   _id: string;
   status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
@@ -179,4 +385,39 @@ export interface BackendWarrantyResponse {
         createdAt?: string;
         updatedAt?: string;
       };
+}
+
+export interface BackendWarrantyStatusResponse {
+  _id: string;
+  orderId: string;
+  userId: string;
+  status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
+  description: string;
+  evidenceUrls?: string[];
+  repairNotes?: string;
+  technicianId?: string;
+  technicianName?: string;
+  createdAt: string;
+  updatedAt?: string;
+  resolvedAt?: string;
+}
+
+export interface BackendAssignTechnicianResponse {
+  _id: string;
+  orderId: string;
+  userId: string;
+  status: 'pending' | 'review' | 'resolved' | 'rejected' | 'refunded';
+  description: string;
+  evidenceUrls?: string[];
+  repairNotes?: string;
+  technicianId?: string;
+  technicianName?: string;
+  createdAt: string;
+  updatedAt?: string;
+  resolvedAt?: string;
+}
+
+export interface BackendSupportTicketResponse {
+  ticketId: string;
+  status: 'open' | 'in_review' | 'closed';
 }

@@ -3,19 +3,29 @@ import { zValidator } from '@hono/zod-validator';
 import {
   createProduct,
   deleteProduct,
+  getBestSellingProducts,
   getLowStockProducts,
   getProductById,
   getProductInventoryMovements,
   getProducts,
+  getProductsForComparison,
+  getRecentProducts,
+  getRelatedProducts,
   updateProduct,
 } from '../controllers/product.controller';
+import { getProductInspection, upsertProductInspection } from '../controllers/inspection.controller';
 import {
   createProductSchema,
+  bestSellersQuerySchema,
+  compareQuerySchema,
   lowStockQuerySchema,
   productFilterSchema,
+  recentProductsQuerySchema,
+  relatedProductsQuerySchema,
   updateProductSchema,
 } from '../validators/product.validator';
-import { adminAuthMiddleware } from '../middlewares/auth.middleware';
+import { upsertInspectionSchema } from '../validators/inspection.validator';
+import { adminAuthMiddleware, technicianAuthMiddleware } from '../middlewares/auth.middleware';
 
 const productRoutes = new Hono();
 
@@ -44,11 +54,69 @@ productRoutes.get(
   getLowStockProducts
 );
 
+productRoutes.get(
+  '/best-sellers',
+  zValidator('query', bestSellersQuerySchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ success: false, errors: result.error.errors }, 400);
+    }
+  }),
+  getBestSellingProducts
+);
+
+// Productos mas recientes por fecha de registro (HU-50)
+productRoutes.get(
+  '/recent',
+  zValidator('query', recentProductsQuerySchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ success: false, errors: result.error.errors }, 400);
+    }
+  }),
+  getRecentProducts
+);
+
+// Productos a comparar lado a lado (HU-43). Registrada antes de '/:id' para
+// que "compare" no se interprete como un id.
+productRoutes.get(
+  '/compare',
+  zValidator('query', compareQuerySchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ success: false, errors: result.error.errors }, 400);
+    }
+  }),
+  getProductsForComparison
+);
+
 // Obtener un producto por ID
 productRoutes.get('/:id', getProductById);
 
 // Historial de movimientos de inventario de un producto (solo admin)
 productRoutes.get('/:id/inventory-movements', adminAuthMiddleware, getProductInventoryMovements);
+
+// Productos relacionados (misma categoria, excluyendo el actual) (HU-44)
+productRoutes.get(
+  '/:id/related',
+  zValidator('query', relatedProductsQuerySchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ success: false, errors: result.error.errors }, 400);
+    }
+  }),
+  getRelatedProducts
+);
+
+// Ficha de inspeccion tecnica de un producto (HU-46). Lectura publica;
+// solo un tecnico autenticado puede registrarla/actualizarla.
+productRoutes.get('/:id/inspection', getProductInspection);
+productRoutes.put(
+  '/:id/inspection',
+  technicianAuthMiddleware,
+  zValidator('json', upsertInspectionSchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ success: false, errors: result.error.errors }, 400);
+    }
+  }),
+  upsertProductInspection
+);
 
 // Crear un producto con validación de Zod (solo admin)
 productRoutes.post(

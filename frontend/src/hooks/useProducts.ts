@@ -25,3 +25,19 @@ export const useProduct = (id: string | undefined) => {
     enabled: Boolean(id),
   });
 };
+
+export const useProductsCompare = (ids: string[]) => {
+  return useQuery<Product[], Error>({
+    queryKey: ['products', 'compare', ids],
+    queryFn: () => productsService.compare(ids),
+    enabled: ids.length >= 2,
+  });
+};
+
+export const useRelatedProducts = (id: string | undefined) => {
+  return useQuery<Product[], Error>({
+    queryKey: ['product', id, 'related'],
+    queryFn: () => productsService.getRelated(id as string),
+    enabled: Boolean(id),
+  });
+};

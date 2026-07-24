@@ -32,6 +32,21 @@ const TechnicianIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
   </svg>
 );
+const CouponIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v7.5a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25H15m-6 0V6a3 3 0 116 0v2.25m-6 0h6" />
+  </svg>
+);
+const SupportIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+  </svg>
+);
+const AuditIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75M3.75 21h9.9a2.25 2.25 0 002.25-2.25V12.75a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 12.75v6a2.25 2.25 0 002.25 2.25zM3.75 10.5V4.5A2.25 2.25 0 016 2.25h6.879a1.125 1.125 0 01.795.33l3.546 3.546a1.125 1.125 0 01.33.795V10.5" />
+  </svg>
+);
 const BackIcon = () => (
   <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -52,6 +67,14 @@ const navSections = [
       { id: 'warranties',   label: 'Garantías',  icon: <WarrantyIcon /> },
       { id: 'products',     label: 'Productos',  icon: <ProductsIcon /> },
       { id: 'technicians',  label: 'Técnicos',   icon: <TechnicianIcon /> },
+      { id: 'coupons',      label: 'Cupones',    icon: <CouponIcon /> },
+      { id: 'support',      label: 'Soporte',    icon: <SupportIcon /> },
+    ],
+  },
+  {
+    label: 'Seguridad',
+    items: [
+      { id: 'audit',        label: 'Auditoría',  icon: <AuditIcon /> },
     ],
   },
 ];

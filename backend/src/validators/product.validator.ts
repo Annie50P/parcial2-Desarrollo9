@@ -12,6 +12,9 @@ const productFields = {
     errorMap: () => ({ message: 'Categoría inválida' }),
   }),
   image_urls: z.array(z.string().url('Debe ser una URL válida')).optional(),
+  // HU-47: solo aplica a productos con bateria; se omite en vez de forzar 0
+  // para no registrar un dato falso en productos que no la tienen.
+  battery_health: z.number().min(0, 'La salud de batería debe ser 0 o mayor').max(100, 'La salud de batería no puede superar 100').optional(),
 };
 
 export const createProductSchema = z.object({
@@ -47,3 +50,37 @@ export const productFilterSchema = z
 export const lowStockQuerySchema = z.object({
   threshold: z.coerce.number().int().min(0, 'threshold debe ser 0 o un entero positivo').optional(),
 });
+
+export const bestSellersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1, 'limit debe ser al menos 1').max(12, 'limit no puede superar 12').optional(),
+});
+
+// HU-50: cantidad de productos mas recientes (por fecha de registro) a devolver.
+export const recentProductsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1, 'limit debe ser al menos 1').max(12, 'limit no puede superar 12').optional(),
+});
+
+// HU-44: cantidad de productos relacionados (misma categoria) a devolver.
+export const relatedProductsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1, 'limit debe ser al menos 1').max(12, 'limit no puede superar 12').optional(),
+});
+
+const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+
+// HU-43: ids llega como query string separado por comas (?ids=a,b,c). Se
+// valida en el propio schema (2 a 4 productos, todos ObjectId válidos) para
+// no duplicar esa lógica en el controller.
+export const compareQuerySchema = z
+  .object({
+    ids: z.string().min(1, 'Debe indicar los ids de los productos a comparar'),
+  })
+  .refine(
+    (data) => {
+      const ids = data.ids.split(',').map((id) => id.trim()).filter(Boolean);
+      return ids.length >= 2 && ids.length <= 4 && ids.every((id) => objectIdRegex.test(id));
+    },
+    {
+      message: 'Debe indicar entre 2 y 4 ids de producto válidos, separados por comas',
+      path: ['ids'],
+    }
+  );

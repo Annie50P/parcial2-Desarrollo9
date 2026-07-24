@@ -1,10 +1,13 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export interface CreatePaymentIntentResponse {
   clientSecret: string;
   paymentIntentId?: string;
   orderId: string;
   amount: number;
+  discountAmount?: number;
+  couponCode?: string;
+  couponWarning?: string;
 }
 
 export const checkoutService = {
@@ -12,14 +15,19 @@ export const checkoutService = {
     items: { productId: string; quantity: number }[],
     token: string,
     addressId?: string,
+    couponCode?: string,
   ): Promise<CreatePaymentIntentResponse> => {
-    const response = await fetch(`${BACKEND_URL}/api/checkout`, {
+    const response = await fetch(`${API_URL}/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ items, ...(addressId ? { addressId } : {}) }),
+      body: JSON.stringify({
+        items,
+        ...(addressId ? { addressId } : {}),
+        ...(couponCode ? { couponCode } : {}),
+      }),
     });
 
     if (!response.ok) {

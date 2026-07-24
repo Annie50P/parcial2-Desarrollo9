@@ -5,7 +5,28 @@ import { createApp } from './server.js';
 import type { Authenticator, AuthContext } from './types.js';
 import { BackendApiClient, BackendApiError } from './services/backend-api.js';
 import { createLogger } from './utils/logger.js';
-import type { OrderSummary, WarrantySummary } from './types.js';
+import type {
+  AssignTechnicianInput,
+  AssignTechnicianResult,
+  CreateProductInput,
+  CreateProductResult,
+  CreateSupportTicketInput,
+  CreateSupportTicketResult,
+  CreateWarrantyClaimInput,
+  CreateWarrantyClaimResult,
+  DeleteProductResult,
+  OrderSummary,
+  ProductSearchAdvancedInput,
+  SalesReportInput,
+  SalesReportResult,
+  UpdateProductInput,
+  UpdateProductResult,
+  UpdateWarrantyStatusInput,
+  UpdateWarrantyStatusResult,
+  WarrantyReportInput,
+  WarrantyReportResult,
+  WarrantySummary,
+} from './types.js';
 
 const env = {
   PORT: 3100,
@@ -24,11 +45,13 @@ const env = {
 };
 
 class FakeAuthenticator implements Authenticator {
+  constructor(private readonly role: AuthContext['role'] = 'admin') {}
+
   async authenticate(): Promise<AuthContext> {
     return {
       token: 'test-token',
       userId: 'user_test',
-      role: 'admin',
+      role: this.role,
       expiresAt: Math.floor(Date.now() / 1000) + 60,
     };
   }
@@ -36,13 +59,70 @@ class FakeAuthenticator implements Authenticator {
 
 class FakeBackendApi extends BackendApiClient {
   shouldFailProducts = false;
+  shouldFailAdvancedProducts = false;
   shouldFailGetProduct = false;
   shouldNotFindProduct = false;
   shouldRejectProductId = false;
   shouldRejectOrdersAuth = false;
   shouldRejectWarrantiesAuth = false;
+  shouldRejectCreateWarrantyAuth = false;
+  shouldRejectCreateWarrantyForbidden = false;
+  shouldRejectCreateWarrantyNotFound = false;
+  shouldRejectCreateWarrantyConflict = false;
+  shouldRejectCreateWarrantyInvalid = false;
+  shouldRejectCreateSupportAuth = false;
+  shouldRejectCreateSupportInvalid = false;
+  shouldRejectUpdateWarrantyAuth = false;
+  shouldRejectUpdateWarrantyForbidden = false;
+  shouldRejectUpdateWarrantyNotFound = false;
+  shouldRejectUpdateWarrantyInvalid = false;
+  shouldRejectAssignTechnicianAuth = false;
+  shouldRejectAssignTechnicianForbidden = false;
+  shouldRejectAssignTechnicianNotFound = false;
+  shouldRejectAssignTechnicianTechnicianNotFound = false;
+  shouldRejectAssignTechnicianTechnicianInactive = false;
+  shouldRejectAssignTechnicianInvalid = false;
+  shouldRejectCreateProductAuth = false;
+  shouldRejectCreateProductForbidden = false;
+  shouldRejectCreateProductInvalid = false;
+  shouldRejectUpdateProductAuth = false;
+  shouldRejectUpdateProductForbidden = false;
+  shouldRejectUpdateProductInvalid = false;
+  shouldRejectUpdateProductNotFound = false;
+  shouldRejectDeleteProductAuth = false;
+  shouldRejectDeleteProductForbidden = false;
+  shouldRejectDeleteProductNotFound = false;
+  shouldRejectDeleteProductBackend = false;
+  shouldRejectSalesReportAuth = false;
+  shouldRejectSalesReportForbidden = false;
+  shouldRejectSalesReportInvalid = false;
+  shouldRejectWarrantyReportAuth = false;
+  shouldRejectWarrantyReportForbidden = false;
+  shouldRejectWarrantyReportInvalid = false;
   lastOrdersToken?: string;
+  lastSalesReportToken?: string;
+  lastSalesReportInput?: SalesReportInput;
+  lastWarrantyReportToken?: string;
+  lastWarrantyReportInput?: WarrantyReportInput;
   lastWarrantiesToken?: string;
+  lastCreateWarrantyToken?: string;
+  lastCreateWarrantyInput?: CreateWarrantyClaimInput;
+  lastCreateSupportToken?: string;
+  lastCreateSupportInput?: CreateSupportTicketInput;
+  lastCreateProductToken?: string;
+  lastCreateProductInput?: CreateProductInput;
+  lastUpdateProductToken?: string;
+  lastUpdateProductId?: string;
+  lastUpdateProductInput?: UpdateProductInput;
+  lastDeleteProductToken?: string;
+  lastDeleteProductId?: string;
+  lastUpdateWarrantyToken?: string;
+  lastUpdateWarrantyId?: string;
+  lastUpdateWarrantyInput?: UpdateWarrantyStatusInput;
+  lastAssignTechnicianToken?: string;
+  lastAssignTechnicianId?: string;
+  lastAssignTechnicianInput?: AssignTechnicianInput;
+  lastAdvancedProductFilters?: ProductSearchAdvancedInput;
 
   constructor() {
     super('http://backend.test/api');
@@ -91,6 +171,83 @@ class FakeBackendApi extends BackendApiClient {
     };
   }
 
+  override async searchProductsAdvanced(filters: ProductSearchAdvancedInput) {
+    this.lastAdvancedProductFilters = filters;
+
+    if (this.shouldFailAdvancedProducts) {
+      throw new BackendApiError('Bad request', 400, {
+        success: false,
+        errors: [{ message: 'Invalid advanced filters' }],
+      });
+    }
+
+    const data = [
+      {
+        id: 'prod_1',
+        name: 'iPhone 13 Reacondicionado',
+        description: '128GB',
+        price: 699,
+        stock: 4,
+        condition: 'A' as const,
+        category: 'celular' as const,
+        primaryImageUrl: 'https://cdn.test/iphone.jpg',
+      },
+      {
+        id: 'prod_2',
+        name: 'Laptop ThinkPad X1',
+        price: 899,
+        stock: 0,
+        condition: 'B' as const,
+        category: 'laptop' as const,
+        primaryImageUrl: 'https://cdn.test/thinkpad.jpg',
+      },
+      {
+        id: 'prod_3',
+        name: 'Galaxy Tab S8',
+        price: 550,
+        stock: 9,
+        condition: 'A' as const,
+        category: 'tablet' as const,
+      },
+    ];
+
+    const filtered = data.filter((product) => {
+      if (filters.name && !product.name.toLowerCase().includes(filters.name.toLowerCase())) {
+        return false;
+      }
+      if (filters.category && product.category !== filters.category) {
+        return false;
+      }
+      if (filters.condition && product.condition !== filters.condition) {
+        return false;
+      }
+      if (filters.minPrice !== undefined && product.price < filters.minPrice) {
+        return false;
+      }
+      if (filters.maxPrice !== undefined && product.price > filters.maxPrice) {
+        return false;
+      }
+      if (filters.available === true && product.stock <= 0) {
+        return false;
+      }
+      if (filters.available === false && product.stock > 0) {
+        return false;
+      }
+      return true;
+    });
+
+    const limited = filters.limit !== undefined ? filtered.slice(0, filters.limit) : filtered;
+
+    return {
+      data: limited,
+      pagination: {
+        page: 1,
+        limit: filters.limit ?? limited.length,
+        total: filtered.length,
+      },
+    };
+  }
+
   override async getProduct(productId: string) {
     if (this.shouldRejectProductId) {
       throw new BackendApiError('Invalid product id', 400, {
@@ -124,6 +281,99 @@ class FakeBackendApi extends BackendApiClient {
         category: 'celular' as const,
         primaryImageUrl: 'https://cdn.test/iphone.jpg',
         imageUrls: ['https://cdn.test/iphone.jpg', 'https://cdn.test/iphone-back.jpg'],
+      },
+    };
+  }
+
+  override async createProduct(
+    token: string,
+    input: CreateProductInput,
+    _requestId: string,
+  ): Promise<{ data: CreateProductResult }> {
+    this.lastCreateProductToken = token;
+    this.lastCreateProductInput = input;
+
+    if (this.shouldRejectCreateProductAuth) {
+      throw new BackendApiError('Unauthorized', 401, {
+        error: 'Unauthorized',
+      });
+    }
+
+    if (this.shouldRejectCreateProductForbidden) {
+      throw new BackendApiError('Forbidden', 403, {
+        error: 'Forbidden',
+      });
+    }
+
+    if (this.shouldRejectCreateProductInvalid) {
+      throw new BackendApiError('Bad request', 400, {
+        success: false,
+        message: 'La categoría es inválida',
+      });
+    }
+
+    return {
+      data: {
+        id: '6870f1e2a1234567890ab222',
+        name: input.name,
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        price: input.price,
+        stock: input.stock ?? 0,
+        condition: input.condition,
+        category: input.category,
+        primaryImageUrl: input.imageUrls?.[0],
+        imageUrls: input.imageUrls ?? [],
+      },
+    };
+  }
+
+  override async updateProduct(
+    token: string,
+    productId: string,
+    input: UpdateProductInput,
+    _requestId: string,
+  ): Promise<{ data: UpdateProductResult }> {
+    this.lastUpdateProductToken = token;
+    this.lastUpdateProductId = productId;
+    this.lastUpdateProductInput = input;
+
+    if (this.shouldRejectUpdateProductAuth) {
+      throw new BackendApiError('Unauthorized', 401, {
+        error: 'Unauthorized',
+      });
+    }
+
+    if (this.shouldRejectUpdateProductForbidden) {
+      throw new BackendApiError('Forbidden', 403, {
+        error: 'Forbidden',
+      });
+    }
+
+    if (this.shouldRejectUpdateProductNotFound) {
+      throw new BackendApiError('Not found', 404, {
+        success: false,
+        message: 'Producto no encontrado',
+      });
+    }
+
+    if (this.shouldRejectUpdateProductInvalid) {
+      throw new BackendApiError('Bad request', 400, {
+        success: false,
+        message: 'El precio debe ser un valor positivo',
+      });
+    }
+
+    return {
+      data: {
+        id: productId,
+        name: input.name ?? 'iPhone 13 Reacondicionado',
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        price: input.price ?? 699,
+        stock: input.stock ?? 4,
+        condition: input.condition ?? 'A',
+        category: input.category ?? 'celular',
+        primaryImageUrl: input.imageUrls?.[0] ?? 'https://cdn.test/iphone.jpg',
+        imageUrls: input.imageUrls ?? ['https://cdn.test/iphone.jpg'],
       },
     };
   }
@@ -190,6 +440,89 @@ class FakeBackendApi extends BackendApiClient {
     };
   }
 
+  override async getSalesReport(
+    token: string,
+    input: SalesReportInput,
+    _requestId: string,
+  ): Promise<{ data: SalesReportResult }> {
+    this.lastSalesReportToken = token;
+    this.lastSalesReportInput = input;
+
+    if (this.shouldRejectSalesReportAuth) {
+      throw new BackendApiError('Unauthorized', 401, { success: false, message: 'Unauthorized' });
+    }
+
+    if (this.shouldRejectSalesReportForbidden) {
+      throw new BackendApiError('Forbidden', 403, { success: false, message: 'Forbidden' });
+    }
+
+    if (this.shouldRejectSalesReportInvalid) {
+      throw new BackendApiError('Invalid query', 400, {
+        success: false,
+        errors: [{ message: 'La fecha inicial no puede ser posterior a la fecha final' }],
+      });
+    }
+
+    return {
+      data: {
+        summary: {
+          ordersCount: 3,
+          grossRevenue: 1598,
+          averageOrderValue: 532.67,
+        },
+        range: {
+          from: input.from,
+          to: input.to,
+        },
+      },
+    };
+  }
+
+  override async getWarrantyReport(
+    token: string,
+    input: WarrantyReportInput,
+    _requestId: string,
+  ): Promise<{ data: WarrantyReportResult }> {
+    this.lastWarrantyReportToken = token;
+    this.lastWarrantyReportInput = input;
+
+    if (this.shouldRejectWarrantyReportAuth) {
+      throw new BackendApiError('Unauthorized', 401, { success: false, message: 'Unauthorized' });
+    }
+
+    if (this.shouldRejectWarrantyReportForbidden) {
+      throw new BackendApiError('Forbidden', 403, { success: false, message: 'Forbidden' });
+    }
+
+    if (this.shouldRejectWarrantyReportInvalid) {
+      throw new BackendApiError('Invalid query', 400, {
+        success: false,
+        errors: [{ message: 'La fecha inicial no puede ser posterior a la fecha final' }],
+      });
+    }
+
+    return {
+      data: {
+        summary: {
+          totalCases: 4,
+        },
+        byStatus: [
+          { status: 'pending', count: 2 },
+          { status: 'resolved', count: 1 },
+          { status: 'review', count: 1 },
+        ],
+        byTechnician: [
+          { technicianId: 'tech_1', technicianName: 'Maria Gomez', count: 3 },
+          { technicianName: 'Sin tecnico asignado', count: 1 },
+        ],
+        range: {
+          from: input.from,
+          to: input.to,
+        },
+      },
+    };
+  }
+
   override async getMyWarranties(
     token: string,
     _requestId: string,
@@ -222,6 +555,249 @@ class FakeBackendApi extends BackendApiClient {
           },
         },
       ],
+    };
+  }
+
+  override async createWarrantyClaim(
+    token: string,
+    input: CreateWarrantyClaimInput,
+    _requestId: string,
+  ): Promise<{ data: CreateWarrantyClaimResult }> {
+    this.lastCreateWarrantyToken = token;
+    this.lastCreateWarrantyInput = input;
+
+    if (this.shouldRejectCreateWarrantyAuth) {
+      throw new BackendApiError('Unauthorized', 401, {
+        error: 'Unauthorized: User ID not found',
+      });
+    }
+
+    if (this.shouldRejectCreateWarrantyForbidden) {
+      throw new BackendApiError('Forbidden', 403, {
+        error: 'No autorizado: La orden no pertenece a este usuario',
+      });
+    }
+
+    if (this.shouldRejectCreateWarrantyNotFound) {
+      throw new BackendApiError('Not found', 404, {
+        error: 'Orden no encontrada',
+      });
+    }
+
+    if (this.shouldRejectCreateWarrantyConflict) {
+      throw new BackendApiError('Conflict', 409, {
+        error: 'Ya registraste una garantia para esta orden',
+      });
+    }
+
+    if (this.shouldRejectCreateWarrantyInvalid) {
+      throw new BackendApiError('Bad request', 400, {
+        error: 'Garantía Expirada. Plazo Legal agotado',
+      });
+    }
+
+    return {
+      data: {
+        ticketId: 'wr_new_1',
+        status: 'pending',
+      },
+    };
+  }
+
+  override async createSupportTicket(
+    token: string,
+    input: CreateSupportTicketInput,
+    _requestId: string,
+  ): Promise<{ data: CreateSupportTicketResult }> {
+    this.lastCreateSupportToken = token;
+    this.lastCreateSupportInput = input;
+
+    if (this.shouldRejectCreateSupportAuth) {
+      throw new BackendApiError('Unauthorized', 401, {
+        error: 'Unauthorized: User ID not found',
+      });
+    }
+
+    if (this.shouldRejectCreateSupportInvalid) {
+      throw new BackendApiError('Bad request', 400, {
+        error: 'La descripcion debe tener al menos 10 caracteres',
+      });
+    }
+
+    return {
+      data: {
+        ticketId: 'support_new_1',
+        status: 'open',
+      },
+    };
+  }
+
+  override async updateWarrantyStatus(
+    token: string,
+    warrantyId: string,
+    input: UpdateWarrantyStatusInput,
+    _requestId: string,
+  ): Promise<{ data: UpdateWarrantyStatusResult }> {
+    this.lastUpdateWarrantyToken = token;
+    this.lastUpdateWarrantyId = warrantyId;
+    this.lastUpdateWarrantyInput = input;
+
+    if (this.shouldRejectUpdateWarrantyAuth) {
+      throw new BackendApiError('Unauthorized', 401, {
+        error: 'Unauthorized: Token verification failed',
+      });
+    }
+
+    if (this.shouldRejectUpdateWarrantyForbidden) {
+      throw new BackendApiError('Forbidden', 403, {
+        error: 'Forbidden: Insufficient privileges',
+      });
+    }
+
+    if (this.shouldRejectUpdateWarrantyNotFound) {
+      throw new BackendApiError('Not found', 404, {
+        error: 'Report not found',
+      });
+    }
+
+    if (this.shouldRejectUpdateWarrantyInvalid) {
+      throw new BackendApiError('Bad request', 400, {
+        error: 'Invalid status transition',
+      });
+    }
+
+    return {
+      data: {
+        id: warrantyId,
+        orderId: '6870f1e2a1234567890abcde',
+        userId: 'user_owner_1',
+        status: input.status,
+        description: '[battery] La bateria no carga correctamente',
+        evidenceUrls: ['https://cdn.test/evidence-1.jpg'],
+        ...(input.repairNotes !== undefined ? { repairNotes: input.repairNotes } : {}),
+        technicianId: 'tech_1',
+        technicianName: 'Maria Gomez',
+        createdAt: '2026-07-02T09:00:00.000Z',
+        updatedAt: '2026-07-03T12:00:00.000Z',
+        ...(input.status === 'resolved'
+          ? { resolvedAt: '2026-07-03T12:00:00.000Z' }
+          : {}),
+      },
+    };
+  }
+
+  override async assignTechnician(
+    token: string,
+    warrantyId: string,
+    input: AssignTechnicianInput,
+    _requestId: string,
+  ): Promise<{ data: AssignTechnicianResult }> {
+    this.lastAssignTechnicianToken = token;
+    this.lastAssignTechnicianId = warrantyId;
+    this.lastAssignTechnicianInput = input;
+
+    if (this.shouldRejectAssignTechnicianAuth) {
+      throw new BackendApiError('Unauthorized', 401, {
+        error: 'Unauthorized: Token verification failed',
+      });
+    }
+
+    if (this.shouldRejectAssignTechnicianForbidden) {
+      throw new BackendApiError('Forbidden', 403, {
+        error: 'Forbidden: Insufficient privileges',
+      });
+    }
+
+    if (this.shouldRejectAssignTechnicianTechnicianNotFound) {
+      throw new BackendApiError('Not found', 404, {
+        error: 'Technician not found',
+      });
+    }
+
+    if (this.shouldRejectAssignTechnicianTechnicianInactive) {
+      throw new BackendApiError('Conflict', 409, {
+        error: 'Technician is inactive',
+      });
+    }
+
+    if (this.shouldRejectAssignTechnicianNotFound) {
+      throw new BackendApiError('Not found', 404, {
+        error: 'Report not found',
+      });
+    }
+
+    if (this.shouldRejectAssignTechnicianInvalid) {
+      throw new BackendApiError('Bad request', 400, {
+        error: 'Missing technicianId',
+      });
+    }
+
+    return {
+      data: {
+        id: warrantyId,
+        orderId: '6870f1e2a1234567890abcde',
+        userId: 'user_owner_1',
+        status: 'review',
+        description: '[battery] La bateria no carga correctamente',
+        evidenceUrls: ['https://cdn.test/evidence-1.jpg'],
+        technicianId: input.technicianId,
+        technicianName: 'Maria Gomez',
+        createdAt: '2026-07-02T09:00:00.000Z',
+        updatedAt: '2026-07-03T12:00:00.000Z',
+      },
+    };
+  }
+
+  override async deleteProduct(
+    token: string,
+    productId: string,
+    _requestId: string,
+  ): Promise<{ data: DeleteProductResult }> {
+    this.lastDeleteProductToken = token;
+    this.lastDeleteProductId = productId;
+
+    if (this.shouldRejectDeleteProductAuth) {
+      throw new BackendApiError('Unauthorized', 401, {
+        error: 'Unauthorized',
+      });
+    }
+
+    if (this.shouldRejectDeleteProductForbidden) {
+      throw new BackendApiError('Forbidden', 403, {
+        error: 'Forbidden',
+      });
+    }
+
+    if (this.shouldRejectDeleteProductNotFound) {
+      throw new BackendApiError('Not found', 404, {
+        success: false,
+        message: 'Producto no encontrado',
+      });
+    }
+
+    if (this.shouldRejectDeleteProductBackend) {
+      throw new BackendApiError('Internal error', 500, {
+        success: false,
+        message: 'Unexpected error',
+      });
+    }
+
+    return {
+      data: {
+        success: true,
+        message: 'Producto eliminado correctamente',
+        data: {
+          id: productId,
+          name: 'iPhone 13 Reacondicionado',
+          description: '128GB',
+          price: 699,
+          stock: 4,
+          condition: 'A',
+          category: 'celular',
+          primaryImageUrl: 'https://cdn.test/iphone.jpg',
+          imageUrls: ['https://cdn.test/iphone.jpg', 'https://cdn.test/iphone-back.jpg'],
+        },
+      },
     };
   }
 }
@@ -294,7 +870,7 @@ test('unauthenticated mcp requests advertise oauth discovery', async () => {
   assert.ok(body._meta?.['mcp/www_authenticate']?.[0]?.includes('/.well-known/oauth-protected-resource'));
 });
 
-test('mcp handshake works and exposes search_products tool', async () => {
+test('mcp handshake works and exposes search and catalog tools', async () => {
   const backendApi = new FakeBackendApi();
   const { app } = createApp({
     env,
@@ -321,10 +897,10 @@ test('mcp handshake works and exposes search_products tool', async () => {
   assert.equal(serverVersion?.name, 'SafeTech MCP Server');
 
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 4);
+  assert.equal(tools.tools.length, 14);
   assert.deepEqual(
     tools.tools.map((tool) => tool.name).sort(),
-    ['get_product', 'list_my_orders', 'list_my_warranties', 'search_products'],
+    ['assign_technician', 'create_product', 'create_support_ticket', 'create_warranty_claim', 'delete_product', 'get_product', 'get_sales_report', 'get_warranty_report', 'list_my_orders', 'list_my_warranties', 'search_products', 'search_products_advanced', 'update_product', 'update_warranty_status'],
   );
 
   const result = await client.callTool({
@@ -354,6 +930,976 @@ test('mcp handshake works and exposes search_products tool', async () => {
       name: 'iPhone',
       limit: 5,
     },
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('search_products_advanced returns filtered normalized products', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'search_products_advanced',
+    arguments: {
+      category: 'celular',
+      condition: 'A',
+      minPrice: 600,
+      maxPrice: 800,
+      available: true,
+      limit: 10,
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.deepEqual(backendApi.lastAdvancedProductFilters, {
+    category: 'celular',
+    condition: 'A',
+    minPrice: 600,
+    maxPrice: 800,
+    available: true,
+    limit: 10,
+  });
+  assert.deepEqual(result.structuredContent, {
+    products: [
+      {
+        id: 'prod_1',
+        name: 'iPhone 13 Reacondicionado',
+        description: '128GB',
+        price: 699,
+        stock: 4,
+        condition: 'A',
+        category: 'celular',
+        primaryImageUrl: 'https://cdn.test/iphone.jpg',
+      },
+    ],
+    count: 1,
+    appliedFilters: {
+      category: 'celular',
+      condition: 'A',
+      minPrice: 600,
+      maxPrice: 800,
+      available: true,
+      limit: 10,
+    },
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 1,
+    },
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('update_warranty_status updates a warranty for an admin user', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'update_warranty_status',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      status: 'resolved',
+      repairNotes: 'Battery module replaced',
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastUpdateWarrantyToken, 'test-token');
+  assert.equal(backendApi.lastUpdateWarrantyId, '6870f1e2a1234567890abcdf');
+  assert.deepEqual(backendApi.lastUpdateWarrantyInput, {
+    status: 'resolved',
+    repairNotes: 'Battery module replaced',
+  });
+  assert.deepEqual(result.structuredContent, {
+    id: '6870f1e2a1234567890abcdf',
+    orderId: '6870f1e2a1234567890abcde',
+    userId: 'user_owner_1',
+    status: 'resolved',
+    description: '[battery] La bateria no carga correctamente',
+    evidenceUrls: ['https://cdn.test/evidence-1.jpg'],
+    repairNotes: 'Battery module replaced',
+    technicianId: 'tech_1',
+    technicianName: 'Maria Gomez',
+    createdAt: '2026-07-02T09:00:00.000Z',
+    updatedAt: '2026-07-03T12:00:00.000Z',
+    resolvedAt: '2026-07-03T12:00:00.000Z',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_product creates a product for an admin user', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_product',
+    arguments: {
+      name: 'MacBook Pro 14 Reacondicionado',
+      description: 'M3 Pro, 18GB RAM, 512GB SSD',
+      price: 1899,
+      stock: 3,
+      condition: 'A',
+      category: 'laptop',
+      imageUrls: ['https://cdn.test/macbook-front.jpg', 'https://cdn.test/macbook-side.jpg'],
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastCreateProductToken, 'test-token');
+  assert.deepEqual(backendApi.lastCreateProductInput, {
+    name: 'MacBook Pro 14 Reacondicionado',
+    description: 'M3 Pro, 18GB RAM, 512GB SSD',
+    price: 1899,
+    stock: 3,
+    condition: 'A',
+    category: 'laptop',
+    imageUrls: ['https://cdn.test/macbook-front.jpg', 'https://cdn.test/macbook-side.jpg'],
+  });
+  assert.deepEqual(result.structuredContent, {
+    id: '6870f1e2a1234567890ab222',
+    name: 'MacBook Pro 14 Reacondicionado',
+    description: 'M3 Pro, 18GB RAM, 512GB SSD',
+    price: 1899,
+    stock: 3,
+    condition: 'A',
+    category: 'laptop',
+    primaryImageUrl: 'https://cdn.test/macbook-front.jpg',
+    imageUrls: ['https://cdn.test/macbook-front.jpg', 'https://cdn.test/macbook-side.jpg'],
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('update_product updates a product for an admin user', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'update_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab222',
+      updates: {
+        price: 749,
+        stock: 6,
+        imageUrls: ['https://cdn.test/iphone-new.jpg'],
+        reason: 'Reconteo de inventario',
+      },
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastUpdateProductToken, 'test-token');
+  assert.equal(backendApi.lastUpdateProductId, '6870f1e2a1234567890ab222');
+  assert.deepEqual(backendApi.lastUpdateProductInput, {
+    price: 749,
+    stock: 6,
+    imageUrls: ['https://cdn.test/iphone-new.jpg'],
+    reason: 'Reconteo de inventario',
+  });
+  assert.deepEqual(result.structuredContent, {
+    id: '6870f1e2a1234567890ab222',
+    name: 'iPhone 13 Reacondicionado',
+    price: 749,
+    stock: 6,
+    condition: 'A',
+    category: 'celular',
+    primaryImageUrl: 'https://cdn.test/iphone-new.jpg',
+    imageUrls: ['https://cdn.test/iphone-new.jpg'],
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_product rejects non-admin users before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_product',
+    arguments: {
+      name: 'MacBook Pro 14 Reacondicionado',
+      price: 1899,
+      condition: 'A',
+      category: 'laptop',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.equal(backendApi.lastCreateProductToken, undefined);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede crear productos.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('update_product rejects non-admin users before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'update_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab222',
+      updates: {
+        price: 749,
+      },
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.equal(backendApi.lastUpdateProductToken, undefined);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede actualizar productos.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_product normalizes backend validation failures', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectCreateProductInvalid = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_product',
+    arguments: {
+      name: 'MacBook Pro 14 Reacondicionado',
+      price: 1899,
+      condition: 'A',
+      category: 'laptop',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_PRODUCT_INPUT',
+    message: 'La categoría es inválida',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('update_product normalizes backend validation failures', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectUpdateProductInvalid = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'update_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab222',
+      updates: {
+        price: 749,
+      },
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_PRODUCT_INPUT',
+    message: 'El precio debe ser un valor positivo',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('update_product normalizes product not found responses', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectUpdateProductNotFound = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'update_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab999',
+      updates: {
+        stock: 2,
+      },
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'PRODUCT_NOT_FOUND',
+    message: 'Producto no encontrado',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('delete_product deletes a product for an admin user', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'delete_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab222',
+      reason: 'Producto retirado del catalogo',
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastDeleteProductToken, 'test-token');
+  assert.equal(backendApi.lastDeleteProductId, '6870f1e2a1234567890ab222');
+  assert.deepEqual(result.structuredContent, {
+    success: true,
+    message: 'Producto eliminado correctamente',
+    data: {
+      id: '6870f1e2a1234567890ab222',
+      name: 'iPhone 13 Reacondicionado',
+      description: '128GB',
+      price: 699,
+      stock: 4,
+      condition: 'A',
+      category: 'celular',
+      primaryImageUrl: 'https://cdn.test/iphone.jpg',
+      imageUrls: ['https://cdn.test/iphone.jpg', 'https://cdn.test/iphone-back.jpg'],
+    },
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('delete_product rejects non-admin users before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'delete_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab222',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.equal(backendApi.lastDeleteProductToken, undefined);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede eliminar productos.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('delete_product normalizes product not found responses', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectDeleteProductNotFound = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'delete_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab999',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'PRODUCT_NOT_FOUND',
+    message: 'Producto no encontrado',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('delete_product normalizes unexpected backend failures', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectDeleteProductBackend = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'delete_product',
+    arguments: {
+      productId: '6870f1e2a1234567890ab222',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'BACKEND_500',
+    message: 'No fue posible eliminar el producto en este momento.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('update_warranty_status rejects non-admin users before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'update_warranty_status',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      status: 'review',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.equal(backendApi.lastUpdateWarrantyToken, undefined);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede actualizar el estado de una garantia.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('update_warranty_status normalizes backend validation failures', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectUpdateWarrantyInvalid = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'update_warranty_status',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      status: 'rejected',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_WARRANTY_UPDATE',
+    message: 'Invalid status transition',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('assign_technician assigns a technician for an admin user', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'assign_technician',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      technicianId: '6870f1e2a1234567890ab111',
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastAssignTechnicianToken, 'test-token');
+  assert.equal(backendApi.lastAssignTechnicianId, '6870f1e2a1234567890abcdf');
+  assert.deepEqual(backendApi.lastAssignTechnicianInput, {
+    technicianId: '6870f1e2a1234567890ab111',
+  });
+  assert.deepEqual(result.structuredContent, {
+    id: '6870f1e2a1234567890abcdf',
+    orderId: '6870f1e2a1234567890abcde',
+    userId: 'user_owner_1',
+    status: 'review',
+    description: '[battery] La bateria no carga correctamente',
+    evidenceUrls: ['https://cdn.test/evidence-1.jpg'],
+    technicianId: '6870f1e2a1234567890ab111',
+    technicianName: 'Maria Gomez',
+    createdAt: '2026-07-02T09:00:00.000Z',
+    updatedAt: '2026-07-03T12:00:00.000Z',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('assign_technician rejects non-admin users before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'assign_technician',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      technicianId: '6870f1e2a1234567890ab111',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.equal(backendApi.lastAssignTechnicianToken, undefined);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede asignar tecnicos a garantias.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('assign_technician normalizes a missing technician backend failure', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectAssignTechnicianTechnicianNotFound = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'assign_technician',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      technicianId: '6870f1e2a1234567890ab111',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'TECHNICIAN_NOT_FOUND',
+    message: 'No se encontro el tecnico indicado.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('assign_technician normalizes an inactive technician backend failure', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectAssignTechnicianTechnicianInactive = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'assign_technician',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      technicianId: '6870f1e2a1234567890ab111',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'TECHNICIAN_INACTIVE',
+    message: 'El tecnico indicado existe, pero esta inactivo.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('assign_technician normalizes a missing warranty backend failure', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectAssignTechnicianNotFound = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'assign_technician',
+    arguments: {
+      warrantyId: '6870f1e2a1234567890abcdf',
+      technicianId: '6870f1e2a1234567890ab111',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'WARRANTY_NOT_FOUND',
+    message: 'No se encontro la garantia indicada.',
   });
 
   await transport.terminateSession();
@@ -451,6 +1997,281 @@ test('list_my_warranties rejects authenticated backend failures in a controlled 
   assert.deepEqual(result.structuredContent, {
     code: 'AUTH_REQUIRED',
     message: 'La sesion no es valida para consultar garantias.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_warranty_claim creates a warranty claim for the authenticated user', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_warranty_claim',
+    arguments: {
+      orderId: '507f191e810c19729de860ea',
+      reason: 'battery',
+      description: 'La bateria se descarga demasiado rapido.',
+      evidenceUrls: ['https://cdn.test/warranty-new-1.jpg'],
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastCreateWarrantyToken, 'test-token');
+  assert.deepEqual(backendApi.lastCreateWarrantyInput, {
+    orderId: '507f191e810c19729de860ea',
+    reason: 'battery',
+    description: 'La bateria se descarga demasiado rapido.',
+    evidenceUrls: ['https://cdn.test/warranty-new-1.jpg'],
+  });
+  assert.deepEqual(result.structuredContent, {
+    ticketId: 'wr_new_1',
+    status: 'pending',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_warranty_claim rejects warranty claims for third-party orders in a controlled way', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectCreateWarrantyForbidden = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_warranty_claim',
+    arguments: {
+      orderId: '507f191e810c19729de860ea',
+      reason: 'battery',
+      description: 'La bateria se descarga demasiado rapido.',
+      evidenceUrls: ['https://cdn.test/warranty-new-1.jpg'],
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'No puedes crear un reclamo sobre una orden que no te pertenece.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_warranty_claim normalizes backend validation failures in a controlled way', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectCreateWarrantyInvalid = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_warranty_claim',
+    arguments: {
+      orderId: '507f191e810c19729de860ea',
+      reason: 'battery',
+      description: 'La bateria se descarga demasiado rapido.',
+      evidenceUrls: ['https://cdn.test/warranty-new-1.jpg'],
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_WARRANTY_CLAIM',
+    message: 'Garantía Expirada. Plazo Legal agotado',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_support_ticket creates a support ticket for the authenticated user', async () => {
+  const backendApi = new FakeBackendApi();
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_support_ticket',
+    arguments: {
+      category: 'payments',
+      description: 'Necesito ayuda con un cobro duplicado.',
+      contactChannel: 'email',
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastCreateSupportToken, 'test-token');
+  assert.deepEqual(backendApi.lastCreateSupportInput, {
+    category: 'payments',
+    description: 'Necesito ayuda con un cobro duplicado.',
+    contactChannel: 'email',
+  });
+  assert.deepEqual(result.structuredContent, {
+    ticketId: 'support_new_1',
+    status: 'open',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_support_ticket rejects invalid authenticated sessions in a controlled way', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectCreateSupportAuth = true;
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_support_ticket',
+    arguments: {
+      category: 'payments',
+      description: 'Necesito ayuda con un cobro duplicado.',
+      contactChannel: 'email',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'AUTH_REQUIRED',
+    message: 'La sesion no es valida para crear tickets de soporte.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('create_support_ticket normalizes backend validation failures in a controlled way', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectCreateSupportInvalid = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'create_support_ticket',
+    arguments: {
+      category: 'payments',
+      description: 'Necesito ayuda con un cobro duplicado.',
+      contactChannel: 'email',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_SUPPORT_TICKET',
+    message: 'La descripcion debe tener al menos 10 caracteres',
   });
 
   await transport.terminateSession();
@@ -794,6 +2615,423 @@ test('search_products normalizes backend validation errors', async () => {
   assert.deepEqual(result.structuredContent, {
     code: 'INVALID_BACKEND_REQUEST',
     message: 'La busqueda no pudo ejecutarse por parametros invalidos.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('search_products_advanced rejects invalid price ranges before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'search_products_advanced',
+    arguments: {
+      minPrice: 900,
+      maxPrice: 100,
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.match(
+    String(result.content?.[0] && 'text' in result.content[0] ? result.content[0].text : ''),
+    /minPrice no puede ser mayor que maxPrice/i,
+  );
+  assert.equal(backendApi.lastAdvancedProductFilters, undefined);
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('search_products_advanced normalizes backend validation errors', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldFailAdvancedProducts = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator(),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'search_products_advanced',
+    arguments: {
+      category: 'tablet',
+      available: true,
+      limit: 5,
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_BACKEND_REQUEST',
+    message: 'La busqueda avanzada no pudo ejecutarse por filtros invalidos.',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('get_sales_report returns aggregated metrics for admins', async () => {
+  const backendApi = new FakeBackendApi();
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'get_sales_report',
+    arguments: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastSalesReportToken, 'test-token');
+  assert.deepEqual(backendApi.lastSalesReportInput, {
+    from: '2026-07-01T00:00:00.000Z',
+    to: '2026-07-14T23:59:59.999Z',
+  });
+  assert.deepEqual(result.structuredContent, {
+    summary: {
+      ordersCount: 3,
+      grossRevenue: 1598,
+      averageOrderValue: 532.67,
+    },
+    range: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('get_sales_report rejects non-admin users before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'get_sales_report',
+    arguments: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede consultar reportes de ventas.',
+  });
+  assert.equal(backendApi.lastSalesReportToken, undefined);
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('get_sales_report normalizes invalid date range errors from backend', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectSalesReportInvalid = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'get_sales_report',
+    arguments: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_DATE_RANGE',
+    message: 'La fecha inicial no puede ser posterior a la fecha final',
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('get_warranty_report returns aggregated metrics for admins', async () => {
+  const backendApi = new FakeBackendApi();
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'get_warranty_report',
+    arguments: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  assert.equal(result.isError, undefined);
+  assert.equal(backendApi.lastWarrantyReportToken, 'test-token');
+  assert.deepEqual(backendApi.lastWarrantyReportInput, {
+    from: '2026-07-01T00:00:00.000Z',
+    to: '2026-07-14T23:59:59.999Z',
+  });
+  assert.deepEqual(result.structuredContent, {
+    summary: {
+      totalCases: 4,
+    },
+    byStatus: [
+      { status: 'pending', count: 2 },
+      { status: 'resolved', count: 1 },
+      { status: 'review', count: 1 },
+    ],
+    byTechnician: [
+      { technicianId: 'tech_1', technicianName: 'Maria Gomez', count: 3 },
+      { technicianName: 'Sin tecnico asignado', count: 1 },
+    ],
+    range: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('get_warranty_report rejects non-admin users before calling the backend', async () => {
+  const backendApi = new FakeBackendApi();
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'get_warranty_report',
+    arguments: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede consultar reportes de garantias.',
+  });
+  assert.equal(backendApi.lastWarrantyReportToken, undefined);
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('get_warranty_report rejects non-admin users even with an inverted date range', async () => {
+  const backendApi = new FakeBackendApi();
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('user'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'get_warranty_report',
+    arguments: {
+      from: '2026-07-14T23:59:59.999Z',
+      to: '2026-07-01T00:00:00.000Z',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'FORBIDDEN',
+    message: 'Solo un administrador puede consultar reportes de garantias.',
+  });
+  assert.equal(backendApi.lastWarrantyReportToken, undefined);
+
+  await transport.terminateSession();
+  await client.close();
+});
+
+test('get_warranty_report normalizes invalid date range errors from backend', async () => {
+  const backendApi = new FakeBackendApi();
+  backendApi.shouldRejectWarrantyReportInvalid = true;
+
+  const { app } = createApp({
+    env,
+    logger: createLogger(),
+    authenticator: new FakeAuthenticator('admin'),
+    backendApi,
+  });
+
+  const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+    fetch: async (url, init) => app.fetch(new Request(url, init)),
+    authProvider: {
+      token: async () => 'test-token',
+    },
+  });
+
+  const client = new Client(
+    { name: 'test-harness', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+
+  await client.connect(transport);
+
+  const result = await client.callTool({
+    name: 'get_warranty_report',
+    arguments: {
+      from: '2026-07-01T00:00:00.000Z',
+      to: '2026-07-14T23:59:59.999Z',
+    },
+  });
+
+  assert.equal(result.isError, true);
+  assert.deepEqual(result.structuredContent, {
+    code: 'INVALID_DATE_RANGE',
+    message: 'La fecha inicial no puede ser posterior a la fecha final',
   });
 
   await transport.terminateSession();

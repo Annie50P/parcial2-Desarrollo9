@@ -16,6 +16,9 @@ import ProductDetail from './pages/ProductDetail';
 import Nosotros from './pages/Nosotros';
 import Contacto from './pages/Contacto';
 import MyWarranties from './pages/MyWarranties';
+import Wishlist from './pages/Wishlist';
+import Compare from './pages/Compare';
+import Support from './pages/Support';
 import { ProtectedAdminRoute, ProtectedTechnicianRoute } from './components/AdminRoute';
 import TechnicianDashboard from './pages/TechnicianDashboard';
 
@@ -51,8 +54,24 @@ function App() {
             }
           />
           <Route
+            path="/wishlist"
+            element={
+              <WithNav><Wishlist /></WithNav>
+            }
+          />
+          <Route
+            path="/compare"
+            element={
+              <WithNav><Compare /></WithNav>
+            }
+          />
+          <Route
             path="/mis-garantias"
             element={<WithNav><MyWarranties /></WithNav>}
+          />
+          <Route
+            path="/soporte"
+            element={<WithNav><Support /></WithNav>}
           />
           <Route
             path="/warranties/new"

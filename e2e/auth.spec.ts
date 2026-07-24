@@ -9,7 +9,7 @@ test('redirects a shopper to the catalog after sign in', async ({ page }) => {
   await signInAs(page, 'user');
 
   await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByRole('heading', { name: 'Catálogo' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Catálogo', exact: true })).toBeVisible();
 });
 
 test('redirects an admin to the dashboard after sign in', async ({ page }) => {

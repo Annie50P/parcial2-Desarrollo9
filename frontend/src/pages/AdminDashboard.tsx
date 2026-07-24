@@ -4,9 +4,15 @@ import { useAuth } from '../lib/auth';
 import { warrantyService } from '../services/warranty.service';
 import { ordersService } from '../services/orders.service';
 import { technicianService } from '../services/technician.service';
+import { couponService } from '../services/coupon.service';
+import { supportTicketService } from '../services/supportTicket.service';
+import { auditLogService } from '../services/auditLog.service';
 import type { IWarranty } from '../types/warranty';
 import type { Order } from '../types/order';
 import type { Technician } from '../types/technician';
+import type { Coupon } from '../types/coupon';
+import type { SupportTicket } from '../types/supportTicket';
+import type { AuditLog } from '../types/auditLog';
 import { useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import StatsCards from '../components/StatsCards';
@@ -15,7 +21,7 @@ import ProductTable from '../components/ProductTable';
 import { Badge } from '../components/ui/Badge';
 import { SkeletonTableRow } from '../components/ui/Skeleton';
 
-type SectionType = 'dashboard' | 'orders' | 'warranties' | 'products' | 'technicians';
+type SectionType = 'dashboard' | 'orders' | 'warranties' | 'products' | 'technicians' | 'coupons' | 'support' | 'audit';
 
 const PAGE_SIZE = 10;
 
@@ -29,6 +35,9 @@ const statusVariant: Record<string, 'success' | 'warning' | 'error' | 'neutral'>
   processing: 'neutral',
   shipped:    'neutral',
   delivered:  'success',
+  open:       'warning',
+  in_review:  'neutral',
+  closed:     'success',
 };
 const statusLabel: Record<string, string> = {
   paid:       'Pagado',
@@ -40,6 +49,9 @@ const statusLabel: Record<string, string> = {
   processing: 'En preparación',
   shipped:    'Enviado',
   delivered:  'Entregado',
+  open:       'Abierto',
+  in_review:  'En revisión',
+  closed:     'Cerrado',
 };
 
 const formatDate = (d: string | Date) =>
@@ -219,6 +231,121 @@ function TechnicianForm({ onSubmit, isPending }: { onSubmit: (d: { name: string;
   );
 }
 
+/* ── Coupon form ── */
+function CouponForm({
+  onSubmit,
+  isPending,
+}: {
+  onSubmit: (d: {
+    code: string;
+    discountType: 'percentage' | 'fixed';
+    discountValue: number;
+    validFrom: string;
+    validUntil: string;
+    minPurchase?: number;
+    maxUses?: number;
+  }) => void;
+  isPending: boolean;
+}) {
+  const [code, setCode] = useState('');
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState('');
+  const [validFrom, setValidFrom] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+  const [minPurchase, setMinPurchase] = useState('');
+  const [maxUses, setMaxUses] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!code.trim() || !discountValue || !validFrom || !validUntil) {
+      setFormError('Código, valor de descuento y vigencia son obligatorios.');
+      return;
+    }
+
+    onSubmit({
+      code: code.trim(),
+      discountType,
+      discountValue: Number(discountValue),
+      validFrom: new Date(validFrom).toISOString(),
+      validUntil: new Date(validUntil).toISOString(),
+      minPurchase: minPurchase ? Number(minPurchase) : undefined,
+      maxUses: maxUses ? Number(maxUses) : undefined,
+    });
+
+    setCode(''); setDiscountValue(''); setValidFrom(''); setValidUntil(''); setMinPurchase(''); setMaxUses('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{
+      background: 'var(--white)',
+      border: '1.5px solid var(--line)',
+      borderRadius: 'var(--radius-card)',
+      padding: '1.75rem',
+      marginBottom: '1.75rem',
+    }}>
+      <p style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--ink3)', marginBottom: '1.25rem' }}>
+        Crear cupón
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--ink3)', marginBottom: 5 }}>
+            Código
+          </label>
+          <input value={code} onChange={e => setCode(e.target.value)} placeholder="VERANO10" className="input" required style={{ fontSize: '0.875rem' }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--ink3)', marginBottom: 5 }}>
+            Tipo
+          </label>
+          <select value={discountType} onChange={e => setDiscountType(e.target.value as 'percentage' | 'fixed')} className="input" style={{ fontSize: '0.875rem' }}>
+            <option value="percentage">Porcentaje</option>
+            <option value="fixed">Monto fijo</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--ink3)', marginBottom: 5 }}>
+            Valor
+          </label>
+          <input value={discountValue} onChange={e => setDiscountValue(e.target.value)} type="number" min="0" placeholder={discountType === 'percentage' ? '10' : '15.00'} className="input" required style={{ fontSize: '0.875rem' }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--ink3)', marginBottom: 5 }}>
+            Compra mínima
+          </label>
+          <input value={minPurchase} onChange={e => setMinPurchase(e.target.value)} type="number" min="0" placeholder="Opcional" className="input" style={{ fontSize: '0.875rem' }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--ink3)', marginBottom: 5 }}>
+            Válido desde
+          </label>
+          <input value={validFrom} onChange={e => setValidFrom(e.target.value)} type="date" className="input" required style={{ fontSize: '0.875rem' }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--ink3)', marginBottom: 5 }}>
+            Válido hasta
+          </label>
+          <input value={validUntil} onChange={e => setValidUntil(e.target.value)} type="date" className="input" required style={{ fontSize: '0.875rem' }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--ink3)', marginBottom: 5 }}>
+            Usos máximos
+          </label>
+          <input value={maxUses} onChange={e => setMaxUses(e.target.value)} type="number" min="1" placeholder="Ilimitado" className="input" style={{ fontSize: '0.875rem' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'end' }}>
+          <button type="submit" disabled={isPending} className="btn-primary" style={{ height: 42, padding: '0 22px', fontSize: '0.85rem', width: '100%' }}>
+            {isPending ? 'Creando…' : 'Crear cupón'}
+          </button>
+        </div>
+      </div>
+      {formError && <div className="alert alert-error">{formError}</div>}
+    </form>
+  );
+}
+
 /* ══════════════════ Main Dashboard ══════════════════ */
 export default function AdminDashboard() {
   const { getToken, isLoaded } = useAuth();
@@ -227,6 +354,9 @@ export default function AdminDashboard() {
   const [ordersPage, setOrdersPage] = useState(1);
   const [warrantiesPage, setWarrantiesPage] = useState(1);
   const [techniciansPage, setTechniciansPage] = useState(1);
+  const [couponsPage, setCouponsPage] = useState(1);
+  const [supportPage, setSupportPage] = useState(1);
+  const [auditPage, setAuditPage] = useState(1);
   const queryClient = useQueryClient();
 
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
@@ -260,10 +390,10 @@ export default function AdminDashboard() {
   });
 
   const assignTechMutation = useMutation({
-    mutationFn: async ({ id, technicianId, technicianName }: { id: string; technicianId: string; technicianName: string }) => {
+    mutationFn: async ({ id, technicianId }: { id: string; technicianId: string }) => {
       const token = await getToken();
       if (!token) throw new Error('No token');
-      return warrantyService.assignTechnician(id, technicianId, technicianName, token);
+      return warrantyService.assignTechnician(id, technicianId, token);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-warranties'] }),
   });
@@ -286,11 +416,85 @@ export default function AdminDashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['technicians'] }),
   });
 
+  const { data: coupons, isLoading: couponsLoading } = useQuery<Coupon[]>({
+    queryKey: ['coupons'],
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return couponService.getCoupons(token);
+    },
+    enabled: isLoaded,
+  });
+
+  const couponMutation = useMutation({
+    mutationFn: async (data: {
+      code: string;
+      discountType: 'percentage' | 'fixed';
+      discountValue: number;
+      validFrom: string;
+      validUntil: string;
+      minPurchase?: number;
+      maxUses?: number;
+    }) => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return couponService.createCoupon(data, token);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coupons'] }),
+  });
+
+  const deactivateCouponMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return couponService.deactivateCoupon(id, token);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coupons'] }),
+  });
+
+  const { data: supportTickets, isLoading: supportTicketsLoading } = useQuery<SupportTicket[]>({
+    queryKey: ['admin-support-tickets'],
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return supportTicketService.getAllTickets(token);
+    },
+    enabled: isLoaded,
+  });
+
+  const updateTicketStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'open' | 'in_review' | 'closed' }) => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return supportTicketService.updateTicketStatus(id, status, token);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] }),
+  });
+
+  const { data: auditLogs, isLoading: auditLogsLoading } = useQuery<AuditLog[]>({
+    queryKey: ['admin-audit-logs'],
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return auditLogService.getAll(token);
+    },
+    enabled: isLoaded,
+  });
+
   const updateShippingMutation = useMutation({
     mutationFn: async ({ orderId, data }: { orderId: string; data: { status?: 'processing' | 'shipped' | 'delivered'; carrier?: string; trackingNumber?: string } }) => {
       const token = await getToken();
       if (!token) throw new Error('No token');
       return ordersService.updateShipping(orderId, data, token);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-orders'] }),
+  });
+
+  const refundOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return ordersService.refundOrder(orderId, token);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-orders'] }),
   });
@@ -303,12 +507,18 @@ export default function AdminDashboard() {
     setOrdersPage(1);
     setWarrantiesPage(1);
     setTechniciansPage(1);
+    setCouponsPage(1);
+    setSupportPage(1);
+    setAuditPage(1);
     setSidebarOpen(false);
   };
 
-  const pagedOrders      = (orders      ?? []).slice((ordersPage - 1)      * PAGE_SIZE, ordersPage      * PAGE_SIZE);
-  const pagedWarranties  = (warranties  ?? []).slice((warrantiesPage - 1)  * PAGE_SIZE, warrantiesPage  * PAGE_SIZE);
-  const pagedTechnicians = (technicians ?? []).slice((techniciansPage - 1) * PAGE_SIZE, techniciansPage * PAGE_SIZE);
+  const pagedOrders         = (orders         ?? []).slice((ordersPage - 1)         * PAGE_SIZE, ordersPage         * PAGE_SIZE);
+  const pagedWarranties     = (warranties     ?? []).slice((warrantiesPage - 1)     * PAGE_SIZE, warrantiesPage     * PAGE_SIZE);
+  const pagedTechnicians    = (technicians    ?? []).slice((techniciansPage - 1)    * PAGE_SIZE, techniciansPage    * PAGE_SIZE);
+  const pagedCoupons        = (coupons        ?? []).slice((couponsPage - 1)        * PAGE_SIZE, couponsPage        * PAGE_SIZE);
+  const pagedSupportTickets = (supportTickets ?? []).slice((supportPage - 1)        * PAGE_SIZE, supportPage        * PAGE_SIZE);
+  const pagedAuditLogs      = (auditLogs      ?? []).slice((auditPage - 1)          * PAGE_SIZE, auditPage          * PAGE_SIZE);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--cream)' }}>
@@ -418,25 +628,54 @@ export default function AdminDashboard() {
                               </Badge>
                             </td>
                             <td>
-                              <button
-                                type="button"
-                                className="btn-outline"
-                                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                                onClick={() => {
-                                  if (managingOrderId === order._id) {
-                                    setManagingOrderId(null);
-                                    return;
-                                  }
-                                  setManagingOrderId(order._id);
-                                  setShippingForm({
-                                    status: (['processing', 'shipped', 'delivered'].includes(order.status) ? order.status : '') as '' | 'processing' | 'shipped' | 'delivered',
-                                    carrier: order.carrier ?? '',
-                                    trackingNumber: order.trackingNumber ?? '',
-                                  });
-                                }}
-                              >
-                                {order.carrier || order.trackingNumber ? 'Editar envío' : 'Gestionar envío'}
-                              </button>
+                              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {order.status !== 'refunded' && (
+                                  <button
+                                    type="button"
+                                    className="btn-outline"
+                                    style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                    onClick={() => {
+                                      if (managingOrderId === order._id) {
+                                        setManagingOrderId(null);
+                                        return;
+                                      }
+                                      setManagingOrderId(order._id);
+                                      setShippingForm({
+                                        status: (['processing', 'shipped', 'delivered'].includes(order.status) ? order.status : '') as '' | 'processing' | 'shipped' | 'delivered',
+                                        carrier: order.carrier ?? '',
+                                        trackingNumber: order.trackingNumber ?? '',
+                                      });
+                                    }}
+                                  >
+                                    {order.carrier || order.trackingNumber ? 'Editar envío' : 'Gestionar envío'}
+                                  </button>
+                                )}
+                                {['paid', 'processing', 'shipped', 'delivered'].includes(order.status) && (
+                                  <button
+                                    type="button"
+                                    style={{
+                                      padding: '4px 10px',
+                                      fontSize: '0.75rem',
+                                      border: '1px solid var(--line)',
+                                      borderRadius: 'var(--radius-ui)',
+                                      background: 'var(--white)',
+                                      color: '#b3261e',
+                                      cursor: refundOrderMutation.isPending ? 'not-allowed' : 'pointer',
+                                      opacity: refundOrderMutation.isPending ? 0.6 : 1,
+                                    }}
+                                    disabled={refundOrderMutation.isPending}
+                                    onClick={() => {
+                                      const confirmed = window.confirm(`¿Reembolsar la orden por $${order.total_amount?.toFixed(2)}? Esta acción no se puede deshacer.`);
+                                      if (!confirmed) return;
+                                      refundOrderMutation.mutate(order._id, {
+                                        onSuccess: () => setManagingOrderId((current) => (current === order._id ? null : current)),
+                                      });
+                                    }}
+                                  >
+                                    {refundOrderMutation.isPending ? 'Reembolsando…' : 'Reembolsar'}
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                           {managingOrderId === order._id && (
@@ -546,7 +785,7 @@ export default function AdminDashboard() {
                                 value={w.technicianId || ''}
                                 onChange={(e) => {
                                   const tech = technicians?.find((t) => t._id === e.target.value);
-                                  if (tech) assignTechMutation.mutate({ id: w._id, technicianId: tech._id, technicianName: tech.name });
+                                  if (tech) assignTechMutation.mutate({ id: w._id, technicianId: tech._id });
                                 }}
                                 disabled={assignTechMutation.isPending || w.status !== 'pending'}
                                 style={{ minWidth: 140 }}
@@ -647,6 +886,203 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
                 <Pagination total={technicians?.length ?? 0} page={techniciansPage} onPage={setTechniciansPage} />
+              </div>
+            </div>
+          )}
+
+          {/* ══ CUPONES ══ */}
+          {activeSection === 'coupons' && (
+            <div style={{ animation: 'fadeIn 0.3s ease both' }}>
+              <SectionHeader title="Cupones" count={coupons?.length} />
+              <CouponForm
+                onSubmit={(d) => couponMutation.mutate(d)}
+                isPending={couponMutation.isPending}
+              />
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Descuento</th>
+                      <th>Vigencia</th>
+                      <th>Usos</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {couponsLoading
+                      ? Array.from({ length: 4 }).map((_, i) => <SkeletonTableRow key={i} cols={6} />)
+                      : pagedCoupons.length === 0
+                        ? (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--ink3)', fontSize: '0.9rem' }}>
+                              No hay cupones registrados.
+                            </td>
+                          </tr>
+                        )
+                        : pagedCoupons.map((coupon) => (
+                          <tr key={coupon._id}>
+                            <td style={{ fontWeight: 600 }}>{coupon.code}</td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.875rem' }}>
+                              {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue.toFixed(2)}`}
+                            </td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.8rem' }}>
+                              {formatDate(coupon.validFrom)} – {formatDate(coupon.validUntil)}
+                            </td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.875rem' }}>
+                              {coupon.usedCount}{coupon.maxUses ? ` / ${coupon.maxUses}` : ''}
+                            </td>
+                            <td>
+                              <Badge variant={coupon.active ? 'success' : 'neutral'}>
+                                {coupon.active ? 'Activo' : 'Inactivo'}
+                              </Badge>
+                            </td>
+                            <td className="actions">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const confirmed = window.confirm(`¿Desactivar el cupón ${coupon.code}?`);
+                                  if (!confirmed) return;
+                                  deactivateCouponMutation.mutate(coupon._id);
+                                }}
+                                disabled={!coupon.active || deactivateCouponMutation.isPending}
+                                style={{
+                                  padding: '7px 12px',
+                                  border: '1px solid var(--line)',
+                                  borderRadius: 'var(--radius-ui)',
+                                  background: 'var(--white)',
+                                  color: 'var(--ink)',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 500,
+                                  fontFamily: 'var(--font-sans)',
+                                  cursor: (!coupon.active || deactivateCouponMutation.isPending) ? 'not-allowed' : 'pointer',
+                                  opacity: (!coupon.active || deactivateCouponMutation.isPending) ? 0.6 : 1,
+                                }}
+                                title={`Desactivar ${coupon.code}`}
+                              >
+                                {deactivateCouponMutation.isPending ? 'Desactivando…' : 'Desactivar'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                    }
+                  </tbody>
+                </table>
+                <Pagination total={coupons?.length ?? 0} page={couponsPage} onPage={setCouponsPage} />
+              </div>
+            </div>
+          )}
+
+          {/* ══ SOPORTE ══ */}
+          {activeSection === 'support' && (
+            <div style={{ animation: 'fadeIn 0.3s ease both' }}>
+              <SectionHeader title="Tickets de soporte" count={supportTickets?.length} />
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Usuario</th>
+                      <th>Categoría</th>
+                      <th>Descripción</th>
+                      <th>Contacto</th>
+                      <th>Estado</th>
+                      <th className="actions">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supportTicketsLoading
+                      ? Array.from({ length: 6 }).map((_, i) => <SkeletonTableRow key={i} cols={7} />)
+                      : pagedSupportTickets.length === 0
+                        ? (
+                          <tr>
+                            <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--ink3)', fontSize: '0.9rem' }}>
+                              No hay tickets de soporte registrados.
+                            </td>
+                          </tr>
+                        )
+                        : pagedSupportTickets.map((ticket) => (
+                          <tr key={ticket._id}>
+                            <td style={{ fontWeight: 500 }}>{formatDate(ticket.createdAt)}</td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.85rem' }}>{ticket.userId}</td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.85rem' }}>{ticket.category}</td>
+                            <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ticket.description}>
+                              {ticket.description}
+                            </td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.85rem' }}>{ticket.contactChannel}</td>
+                            <td>
+                              <Badge variant={statusVariant[ticket.status] ?? 'neutral'}>
+                                {statusLabel[ticket.status] ?? ticket.status}
+                              </Badge>
+                            </td>
+                            <td className="actions">
+                              <select
+                                className="admin-select"
+                                value={ticket.status}
+                                onChange={(e) => updateTicketStatusMutation.mutate({ id: ticket._id, status: e.target.value as 'open' | 'in_review' | 'closed' })}
+                                disabled={updateTicketStatusMutation.isPending}
+                                style={{ minWidth: 140 }}
+                              >
+                                <option value="open">Abierto</option>
+                                <option value="in_review">En revisión</option>
+                                <option value="closed">Cerrado</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))
+                    }
+                  </tbody>
+                </table>
+                <Pagination total={supportTickets?.length ?? 0} page={supportPage} onPage={setSupportPage} />
+              </div>
+            </div>
+          )}
+
+          {/* ══ AUDITORÍA ══ */}
+          {activeSection === 'audit' && (
+            <div style={{ animation: 'fadeIn 0.3s ease both' }}>
+              <SectionHeader title="Auditoría de acciones administrativas" count={auditLogs?.length} />
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Usuario</th>
+                      <th>Acción</th>
+                      <th>Recurso</th>
+                      <th>Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogsLoading
+                      ? Array.from({ length: 6 }).map((_, i) => <SkeletonTableRow key={i} cols={5} />)
+                      : pagedAuditLogs.length === 0
+                        ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--ink3)', fontSize: '0.9rem' }}>
+                              No hay acciones auditadas todavía.
+                            </td>
+                          </tr>
+                        )
+                        : pagedAuditLogs.map((log) => (
+                          <tr key={log._id}>
+                            <td style={{ fontWeight: 500 }}>{formatDate(log.createdAt)}</td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.85rem' }}>{log.userId}</td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.85rem' }}>{log.action}</td>
+                            <td style={{ color: 'var(--ink2)', fontSize: '0.85rem' }}>{log.resourceType} · {log.resourceId}</td>
+                            <td
+                              style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink3)', fontSize: '0.8rem' }}
+                              title={log.metadata ? JSON.stringify(log.metadata) : undefined}
+                            >
+                              {log.metadata ? JSON.stringify(log.metadata) : '—'}
+                            </td>
+                          </tr>
+                        ))
+                    }
+                  </tbody>
+                </table>
+                <Pagination total={auditLogs?.length ?? 0} page={auditPage} onPage={setAuditPage} />
               </div>
             </div>
           )}
