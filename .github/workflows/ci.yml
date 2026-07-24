@@ -18,7 +18,7 @@ env:
   STRIPE_SECRET_KEY: sk_test_dummy_key_for_ci
   STRIPE_WEBHOOK_SECRET: whsec_dummy_key_for_ci
   CLERK_SECRET_KEY: sk_test_dummy_key_for_ci
-  CLERK_PUBLISHABLE_KEY: pk_test_dummy_key_for_ci
+  CLERK_PUBLISHABLE_KEY: pk_test_ZHVtbXkuY2xlcmsuYWNjb3VudHMuZGV2JA==
   CLERK_WEBHOOK_SECRET: whsec_dummy_key_for_ci
 
 jobs:

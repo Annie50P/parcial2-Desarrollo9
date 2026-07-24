@@ -23,6 +23,8 @@ export default defineConfig({
         PORT: '3001',
         MONGODB_URI: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/safetech',
         E2E_TEST_MODE: 'true',
+        CLERK_PUBLISHABLE_KEY:
+          process.env.CLERK_PUBLISHABLE_KEY || 'pk_test_ZHVtbXkuY2xlcmsuYWNjb3VudHMuZGV2JA==',
       },
     },
     {
